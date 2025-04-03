@@ -1,0 +1,39 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+**/build/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-versions
+
+# Configuraciones de Flutter en iOS
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/Runner.xcworkspace/
+DerivedData/
+
+# Configuraciones de Flutter en Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Archivos y carpetas de IDE / Editor
+.vscode/
+.idea/
+*.iml
+
+# Archivos de sistema
+.DS_Store
