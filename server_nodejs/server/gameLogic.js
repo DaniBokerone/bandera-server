@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs');
-const gameData = JSON.parse(fs.readFileSync("server/flag_game/game_data.json", "utf8"));
+const gameData = JSON.parse(fs.readFileSync("./flag_game/game_data.json", "utf8"));
 const gameLevel = gameData.levels[0];
 
 const COLORS = ['green', 'blue', 'orange', 'red', 'purple'];
