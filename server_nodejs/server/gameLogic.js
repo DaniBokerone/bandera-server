@@ -249,7 +249,7 @@ class GameLogic {
     getGameState() {
         return {
             tickCounter: this.tickCounter,
-            level: "Level 0",
+            level: "Falg Forest Game",
             players: Array.from(this.players.values()),
             flagOwnerId: this.flagOwnerId
         };
