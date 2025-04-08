@@ -69,6 +69,17 @@ class GameLogic {
                     this.players.get(id).direction = obj.value;
                 }
                 break;
+            case "position":
+                
+                //console.log(`Posicion recibida de ${id}: x=${obj.x}, y=${obj.y}`);
+                if (this.players.has(id)) {
+                    let player = this.players.get(id);
+                    if (typeof obj.x === 'number' && typeof obj.y === 'number') {
+                        player.x = obj.x;
+                        player.y = obj.y;
+                    }
+                }
+                break;
             default:
                 break;
             }
