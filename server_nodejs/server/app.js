@@ -4,7 +4,8 @@ const webSockets = require('./utilsWebSockets.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
-const port = process.env.PORT || 8888;
+const port = process.env.PORT || 3000;
+// Cambair a puerto 8888 para localhost
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
