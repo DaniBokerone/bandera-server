@@ -1,54 +1,90 @@
 'use strict';
-const fs = require('fs');
-const gameData = JSON.parse(fs.readFileSync("./flag_game/game_data.json", "utf8"));
-const gameLevel = gameData.levels[0];
+
+const path = require('path');
+const fs = require('fs').promises;
 
 const COLORS = ['green', 'blue', 'orange', 'red', 'purple'];
-const TICK_FPS = 25;
-const FOCUS_WIDTH = 1000;
-const FOCUS_HEIGHT = 500;
-const FRICTION_FLOOR = 350;
-const FRICTION_ICE = 50;
-const MOVEMENT_SPEED = 100;
-const PLAYER_WIDTH = 32;
-const PLAYER_HEIGHT = 32;
+const SPEED = 0.2;
+
+const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
+const WIDTH_IN_TILES = 48; // Ancho del mapa en tiles
+const HEIGHT_IN_TILES = 32; // Alto del mapa en tiles
 
 const DIRECTIONS = {
-    "up":         { dx: 0, dy: -1 },
-    "upLeft":     { dx: -1, dy: -1 },
-    "left":       { dx: -1, dy: 0 },
-    "downLeft":   { dx: -1, dy: 1 },
-    "down":       { dx: 0, dy: 1 },
-    "downRight":  { dx: 1, dy: 1 },
-    "right":      { dx: 1, dy: 0 },
-    "upRight":    { dx: 1, dy: -1 },
-    "none":       { dx: 0, dy: 0 }
+    "up": { dx: 0, dy: -1 },
+    "upLeft": { dx: -1, dy: -1 },
+    "left": { dx: -1, dy: 0 },
+    "downLeft": { dx: -1, dy: 1 },
+    "down": { dx: 0, dy: 1 },
+    "downRight": { dx: 1, dy: 1 },
+    "right": { dx: 1, dy: 0 },
+    "upRight": { dx: 1, dy: -1 },
+    "none": { dx: 0, dy: 0 }
 };
- 
+
 class GameLogic {
+
     constructor() {
+        this.gameStarted = true;
         this.players = new Map();
-        this.tickCounter = 0;
+        this.loadGameData();
+        this.elapsedTime = 0;
+        this.map = "Deepwater Ruins";
+    }
+
+    async loadGameData() {
+        this.gameData = await this.fetchGameData();
+        for(let level of this.gameData.levels){
+            // Tamaño de la pantalla
+            for(let layer of level.layers) {
+                this.width = layer.tileMap[0].length * layer.tilesWidth;
+                this.height = layer.tileMap.length * layer.tilesHeight;
+            }
+        }
+        if (!this.gameData) {
+            console.error("Error: game_data.json no se pudo cargar.");
+        }
+        this.flagPos = {
+            dx: Math.random(),
+            dy: Math.random()
+        }
+    }
+
+
+    async fetchGameData() {
+        const filePath = path.join(__dirname, '../public', 'game_data.json'); 
+        return fs.readFile(filePath, 'utf-8')
+            .then(data => {
+                console.log(data);
+                return JSON.parse(data);
+            })
+            .catch(error => {
+                console.error("Error cargando game_data.json:", error);
+                return null;
+            });
     }
 
     // Es connecta un client/jugador
     addClient(id) {
-        let pos = this.getValidPosition();
-        let color = this.getAvailableColor();
+        let level = this.gameData["levels"][0];
+        let layer = level["layers"][0];
+        let pos = {
+            x: 88 / (layer.tilesWidth * layer["tileMap"][0].length),
+            y: 160 / (layer.tilesHeight * layer["tileMap"].length)
+        }
+        console.log(pos);
 
         this.players.set(id, {
             id,
             x: pos.x,
             y: pos.y,
-            width: PLAYER_WIDTH,
-            height: PLAYER_HEIGHT,
-            speedX: 0,
-            speedY: 0,
-            direction: "none",
-            color,
-            onIce: false
+            speed: SPEED,
+            direction: "down",
+            moving: false,
+            map: "Main",
+            zone: "", // Col·lisió amb objectes o zones
+            hasFlag: false,
         });
-        this.flagOwnerId = "";
 
         return this.players.get(id);
     }
@@ -64,206 +100,137 @@ class GameLogic {
             let obj = JSON.parse(msg);
             if (!obj.type) return;
             switch (obj.type) {
-            case "direction":
-                if (this.players.has(id) && DIRECTIONS[obj.value]) {
-                    this.players.get(id).direction = obj.value;
-                }
-                break;
-            case "position":
-                
-                //console.log(`Posicion recibida de ${id}: x=${obj.x}, y=${obj.y}`);
-                if (this.players.has(id)) {
-                    let player = this.players.get(id);
-                    if (typeof obj.x === 'number' && typeof obj.y === 'number') {
-                        player.x = obj.x;
-                        player.y = obj.y;
+                case "direction":
+                    if (this.players.has(id)) {
+                       
+                        if(obj.value != "none") {
+                            this.players.get(id).direction = obj.value;
+                            this.players.get(id).moving = true;
+                        } else {
+                            this.players.get(id).moving = false;
+                        }
                     }
-                }
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
             }
-        } catch (error) {}
+        } catch (error) { }
     }
+
+    // Carregar dades estàtiques del joc
+    fetchGameData() {
+        const filePath = path.join(__dirname, '../public', 'game_data.json');
+      
+        return fs.readFile(filePath, 'utf-8')
+          .then(data => JSON.parse(data))
+          .catch(error => {
+            console.error("Error cargando game_data.json:", error);
+            return null;
+          });
+      }
 
     // Blucle de joc (funció que s'executa contínuament)
     updateGame(fps) {
-        let deltaTime = 1 / fps;
+        if(this.gameStarted) {
+            let deltaTime = 1 / fps;
+            this.elapsedTime += deltaTime;
 
-        this.tickCounter = (this.tickCounter + 1) % TICK_FPS;
+            // Actualitzar la posició dels clients
+            this.players.forEach(client => {
 
-        this.players.forEach(player => {
-            let moveVector = DIRECTIONS[player.direction];
-            
-            // Check if player is on ice
-            player.onIce = false;
-            if (gameLevel && gameLevel.zones) {
-                gameLevel.zones.forEach(zone => {
-                    if (zone.type === "ice" && this.areRectsColliding(
-                        player.x, player.y, player.width, player.height, 
-                        zone.x, zone.y, zone.width, zone.height)) {
-                        player.onIce = true;
-                    }
-                });
-            }
-            
-            // Apply movement and friction based on surface
-            const friction = player.onIce ? FRICTION_ICE : FRICTION_FLOOR;
-            
-            // Handle X movement
-            if (moveVector.dx !== 0) {
-                player.speedX = moveVector.dx * MOVEMENT_SPEED;
-            } else {
-                if (player.speedX > 0) {
-                    player.speedX = Math.max(0, player.speedX - friction * deltaTime);
-                } else if (player.speedX < 0) {
-                    player.speedX = Math.min(0, player.speedX + friction * deltaTime);
-                }
-            }
-            
-            // Handle Y movement
-            if (moveVector.dy !== 0) {
-                player.speedY = moveVector.dy * MOVEMENT_SPEED;
-            } else {
-                if (player.speedY > 0) {
-                    player.speedY = Math.max(0, player.speedY - friction * deltaTime);
-                } else if (player.speedY < 0) {
-                    player.speedY = Math.min(0, player.speedY + friction * deltaTime);
-                }
-            }
-            
-            // Calculate next position
-            let nextX = player.x + player.speedX * deltaTime;
-            let nextY = player.y + player.speedY * deltaTime;
-            
-            // Check collisions with floor areas (unwalkable)
-            let canMoveX = true;
-            let canMoveY = true;
-            
-            if (gameLevel && gameLevel.zones) {
-                gameLevel.zones.forEach(zone => {
-                    if (zone.type === "stone") {
-                        // Check X collision
-                        if (this.areRectsColliding(
-                            nextX, player.y, player.width, player.height,
-                            zone.x, zone.y, zone.width, zone.height)) {
-                            canMoveX = false;
-                        }
-                        
-                        // Check Y collision
-                        if (this.areRectsColliding(
-                            player.x, nextY, player.width, player.height,
-                            zone.x, zone.y, zone.width, zone.height)) {
-                            canMoveY = false;
-                        }
-                    }
-                });
-            }
-            
-            // Apply movement if allowed
-            if (canMoveX) {
-                player.x = nextX;
-            } else {
-                player.speedX = 0;
-            }
-            
-            if (canMoveY) {
-                player.y = nextY;
-            } else {
-                player.speedY = 0;
-            }
-            
-            // Check flag collision
-            if (this.flagOwnerId == "") {
-                let flag = gameLevel.sprites.find(sprite => sprite.type === 'flag');
-                if (flag) {
-                    let flgCollisionX = flag.x - flag.width / 2;
-                    let flgCollisionY = flag.y - flag.height / 2;
-                    if (this.areRectsColliding(
-                        nextX, player.y, player.width / 2, player.height / 2, 
-                        flgCollisionX, flgCollisionY, flag.width, flag.height)) {
-                        this.flagOwnerId = player.id;
+                let newClientX = client.x;
+                let newClientY = client.y;
+                if(client.moving) {
+                    if(this.checkValidPosition(newClientX, newClientY, client)){
+                        client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
+                        client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
                     }
                 }
-            }            
-        });
-    }
+                
 
-    // Obtenir una posició on no hi h ha ni objectes ni jugadors
-    // Obtenir una posició on no hi ha ni objectes ni jugadors
-    getValidPosition() {
-        // Definir els límits de posició
-        const minX = 100;
-        const minY = 100;
-        const maxX = FOCUS_WIDTH - 100;
-        const maxY = FOCUS_HEIGHT - 100;
-        
-        // Intent màxim per evitar un bucle infinit
-        const maxAttempts = 50;
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-            // Generar una posició aleatòria dins els límits
-            let x = minX + Math.random() * (maxX - minX);
-            let y = minY + Math.random() * (maxY - minY);
-            
-            // Comprovar si la posició col·lisiona amb alguna zona de pedra
-            let isValidPosition = true;
-            
-            if (gameLevel && gameLevel.zones) {
-                for (const zone of gameLevel.zones) {
-                    if (zone.type === "stone" && this.areRectsColliding(
-                        x, y, PLAYER_WIDTH, PLAYER_HEIGHT,
-                        zone.x, zone.y, zone.width, zone.height)) {
-                        isValidPosition = false;
-                        break;
-                    }
-                }
+                console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
+            });
+        }else {
+            if(this.players.size >= 4) {
+                setTimeout(() => {
+                    this.gameStarted = true;
+                }, 5000);
             }
-            
-            // Si la posició és vàlida, retornar-la
-            if (isValidPosition) {
-                return { x, y };
-            }
-            
-            attempts++;
         }
         
-        // Si després de varios intents no trobem posició vàlida, tornem un punt central segur
-        // (assumint que el centre del mapa no sigui una pedra)
-        return { 
-            x: (minX + maxX) / 2, 
-            y: (minY + maxY) / 2 
-        };
-    }
-    
-    // Obtenir un color aleatori que no ha estat escollit abans
-    getAvailableColor() {
-        let assignedColors = new Set(Array.from(this.players.values()).map(player => player.color));
-        let availableColors = COLORS.filter(color => !assignedColors.has(color));
-        return availableColors.length > 0 
-          ? availableColors[Math.floor(Math.random() * availableColors.length)]
-          : COLORS[Math.floor(Math.random() * COLORS.length)];
     }
 
-    // Detectar dos rectangles es sobreposen
-    areRectsColliding(r0x, r0y, r0w, r0h, r1x, r1y, r1w, r1h) {
-        return (
-          r0x < r1x + r1w &&
-          r0x + r0w > r1x &&
-          r0y < r1y + r1h &&
-          r0y + r0h > r1y
-        );
-    }
+    checkValidPosition(x, y, client) {
+        if(x>1 || y>1){
+            return false;
+        }
+        return true;
+        // let levels = this.gameData.levels
+        // let level;
+        // if(client) {
+        //     level = levels.filter((level)=> {
+        //         return level.name == client.map;
+        //     })[0];
+        // }else {
+        //     level = levels.filter((level) => {
+        //         return level.name == this.map;
+        //     })[0];
+        // }
+        // if(!level) return false;
+        
+        // let layer = level["layers"][0];
+        // let width = layer.tileMap[0].length;
+        // let height = layer.tileMap.length;
+        // let zones = level["zones"];
+        // // Convertir la posición normalizada a coordenadas reales
+        // let realX = x * layer.tilesWidth * width;
+        // let realY = y * layer.tilesHeight * height;
+        
+        // // Obtener dimensiones reales del sprite
+        // let sprite = levels[0]["sprites"][0];
     
+        // // Definir la hitbox: 16x16 píxeles en la parte inferior central del sprite
+        // const HITBOX_SIZE = 16;
+        // let hitboxX = realX + (sprite.width / 2) - (HITBOX_SIZE / 2);
+        // let hitboxY = realY + sprite.height - HITBOX_SIZE;
+        // let hitboxWidth = HITBOX_SIZE;
+        // let hitboxHeight = HITBOX_SIZE;
+    
+        // // Comprobar intersección entre la hitbox y cada zona
+        // for (let zone of zones) {
+        //     let zoneX = zone.x;
+        //     let zoneY = zone.y;
+        //     let zoneWidth = zone.width;
+        //     let zoneHeight = zone.height;
+            
+        //     if (hitboxX < zoneX + zoneWidth &&
+        //         hitboxX + hitboxWidth > zoneX &&
+        //         hitboxY < zoneY + zoneHeight &&
+        //         hitboxY + hitboxHeight > zoneY) {
+        //         return zone.type;
+        //     }
+        // }
+        // return "";
+    }
+
+    // Detectar si dos rectangles es sobreposen
+    areRectColliding(x1, y1, w1, h1, x2, y2, w2, h2) {
+        return !(x1 + w1 <= x2 ||  
+            x2 + w2 <= x1 || 
+            y1 + h1 <= y2 ||
+            y2 + h2 <= y1);
+    }
+
     // Retorna l'estat del joc (per enviar-lo als clients/jugadors)
     getGameState() {
-        return {
-            tickCounter: this.tickCounter,
-            level: "Falg Forest Game",
+        const gameState = {
+            started: this.gameStarted,
+            time: Math.trunc(this.elapsedTime),
             players: Array.from(this.players.values()),
-            flagOwnerId: this.flagOwnerId
-        };
+            flagPos: this.flagPos,
+        }
+       // console.log(`GameState: ${JSON.stringify(gameState)}`);
+        return gameState;
     }
 }
 
