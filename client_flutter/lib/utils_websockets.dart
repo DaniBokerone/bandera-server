@@ -6,8 +6,8 @@ enum ConnectionStatus { disconnected, disconnecting, connecting, connected }
 
 class WebSocketsHandler {
   late Function _callback;
-  String ip = "localhost";
-  String port = "3000";
+  String ip = "bandera5.ieti.site";
+  String port = "443";
   String? socketId;
 
   WebSocketChannel? _socketClient;
@@ -27,7 +27,7 @@ class WebSocketsHandler {
     connectionStatus = ConnectionStatus.connecting;
 
     try {
-      _socketClient = WebSocketChannel.connect(Uri.parse("ws://$ip:$port"));
+      _socketClient = WebSocketChannel.connect(Uri.parse("wss://$ip"));
       connectionStatus = ConnectionStatus.connected;
 
       _socketClient!.stream.listen(
