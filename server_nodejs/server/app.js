@@ -12,14 +12,14 @@ const ws = new webSockets();
 const game = new GameLogic();
 let gameLoop = new GameLoop();
 
-//GESTION LLAVE 
-let itemPosition = null;
+// //GESTION LLAVE 
+// let itemPosition = null;
 
-function generateRandomItemPosition() {
-  const x = Math.floor(Math.random() * 800);
-  const y = Math.floor(Math.random() * 600);
-  return { x, y };
-}
+// function generateRandomItemPosition() {
+//   const x = Math.floor(Math.random() * 800);
+//   const y = Math.floor(Math.random() * 600);
+//   return { x, y };
+// }
 
 // Inicialitzar servidor Express
 const app = express();
@@ -31,13 +31,13 @@ app.get('/test', (req, res) => {
   res.send('Servidor funcionando correctamente!');
 });
 
-app.get('/item-position', (req, res) => {
-  if (itemPosition) {
-    res.json({ x: itemPosition.x, y: itemPosition.y });
-  } else {
-    res.status(404).json({ error: "La llave no está disponible." });
-  }
-});
+// app.get('/item-position', (req, res) => {
+//   if (itemPosition) {
+//     res.json({ x: itemPosition.x, y: itemPosition.y });
+//   } else {
+//     res.status(404).json({ error: "La llave no está disponible." });
+//   }
+// });
 
 // Inicialitzar servidor HTTP
 const httpServer = app.listen(port, '0.0.0.0', () => {
@@ -52,19 +52,19 @@ ws.onConnection = (socket, id) => {
   if (debug) console.log("WebSocket client connected: " + id);
   game.addClient(id);
 
-  if (game.players.size === 1 && itemPosition === null) {
-    itemPosition = generateRandomItemPosition();
-    console.log("Llave generada en:", itemPosition);
-  }
+  // if (game.players.size === 1 && itemPosition === null) {
+  //   itemPosition = generateRandomItemPosition();
+  //   console.log("Llave generada en:", itemPosition);
+  // }
 
-  // Cuando entra jugador - Enviar posicion llave 
-  if (itemPosition) {
-      socket.send(JSON.stringify({
-          type: "item",
-          x: itemPosition.x,
-          y: itemPosition.y
-      }));
-  }
+  // // Cuando entra jugador - Enviar posicion llave 
+  // if (itemPosition) {
+  //     socket.send(JSON.stringify({
+  //         type: "item",
+  //         x: itemPosition.x,
+  //         y: itemPosition.y
+  //     }));
+  // }
   
     //Cuando entra jugador - Numero de players conectados
     socket.send(JSON.stringify({ type: "playerCount", count: game.players.size }));
