@@ -32,7 +32,7 @@ class CanvasPainter extends CustomPainter {
     // Flag (cuadrado rojo)
     if (gameState["flagPos"] != null) {
       final fx = gameState["flagPos"]["dx"] * size.width;
-      final fy = gameState["flagPos"]["dy"] * size.height;
+      final fy =  gameState["flagPos"]["dy"] * size.height;
       final flagRect = Rect.fromLTWH(fx, fy, 20, 20);
       final flagPaint = Paint()..color = Colors.red;
       canvas.drawRect(flagRect, flagPaint);

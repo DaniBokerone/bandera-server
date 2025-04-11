@@ -6396,8 +6396,7 @@ la:function la(a,b){this.a=a
 this.b=b},
 Ju:function Ju(a){var _=this
 _.a=$
-_.b="localhost"
-_.c="3000"
+_.b="bandera5.ieti.site"
 _.e=_.d=null
 _.f=a},
 Jv:function Jv(a){this.a=a},
@@ -23075,7 +23074,7 @@ tt(){var s=this
 if(s.e>=5)return
 s.d=!1
 s.ad()
-s.a.oI("localhost",3000,s.gGr(),s.gGn(),s.gGp())
+s.a.oI("bandera5.ieti.site",443,s.gGr(),s.gGn(),s.gGp())
 s.d=!0
 s.e=0
 s.ad()},
@@ -23247,10 +23246,9 @@ IZ(a,b,c,d,e){var s=0,r=A.A(t.H),q=this,p,o,n
 var $async$oI=A.B(function(f,g){if(f===1)return A.x(g,r)
 while(true)switch(s){case 0:q.a=c
 q.b=a
-o=B.f.j(b)
-q.c=o
+B.f.j(b)
 q.f=B.rX
-try{o=A.WZ(A.Of(A.fS("ws://"+q.b+":"+o),null))
+try{o=A.WZ(A.Of(A.fS("wss://"+q.b),null))
 q.e=o
 q.f=B.eP
 o=o.r.b
