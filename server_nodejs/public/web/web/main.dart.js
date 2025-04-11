@@ -6396,8 +6396,8 @@ la:function la(a,b){this.a=a
 this.b=b},
 Ju:function Ju(a){var _=this
 _.a=$
-_.b="bandera5.ieti.site"
-_.c="443"
+_.b="localhost"
+_.c="3000"
 _.e=_.d=null
 _.f=a},
 Jv:function Jv(a){this.a=a},
