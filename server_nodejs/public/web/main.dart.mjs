@@ -517,7 +517,6 @@ class CompiledApp {
       _1749: s => s.trim(),
       _1750: s => s.trimLeft(),
       _1751: s => s.trimRight(),
-      _1752: (s, n) => s.repeat(n),
       _1753: (s, p, i) => s.indexOf(p, i),
       _1754: (s, p, i) => s.lastIndexOf(p, i),
       _1756: Object.is,
