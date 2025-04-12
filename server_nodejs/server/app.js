@@ -26,6 +26,11 @@ const app = express();
 app.use(express.static('public'));
 app.use(express.json());
 
+(async () => {
+    await game.loadGameData(); 
+    gameLoop.start();
+})();
+
 // Ruta GET para testear la conexión desde un dispositivo externo
 app.get('/test', (req, res) => {
   res.send('Servidor funcionando correctamente!');
@@ -75,7 +80,7 @@ ws.onConnection = (socket, id) => {
 
 // Gestionar missatges rebuts dels clients
 ws.onMessage = (socket, id, msg) => {
-    if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
+    // if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
     game.handleMessage(id, msg);
 };
 
@@ -91,7 +96,7 @@ gameLoop.run = (fps) => {
     game.updateGame(fps);
     ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
 };
-gameLoop.start();
+
 
 // Gestionar el tancament del servidor
 process.on('SIGTERM', shutDown);

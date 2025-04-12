@@ -3,8 +3,9 @@
 const path = require('path');
 const fs = require('fs').promises;
 
-const COLORS = ['green', 'blue', 'orange', 'red', 'purple'];
+const COLORS = ['green', 'blue', 'darkgreen'];
 const SPEED = 0.2;
+const MAX_PLAYERS = 3;
 
 const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
 const WIDTH_IN_TILES = 48; // Ancho del mapa en tiles
@@ -25,11 +26,13 @@ const DIRECTIONS = {
 class GameLogic {
 
     constructor() {
-        this.gameStarted = true;
+        this.gameStarted = false;
+        this.waitingToStart = false;
         this.players = new Map();
-        this.loadGameData();
+        this.waitingPlayers = new Map();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
+        this.usedColors = new Set();
     }
 
     async loadGameData() {
@@ -66,6 +69,10 @@ class GameLogic {
 
     // Es connecta un client/jugador
     addClient(id) {
+        if (!this.gameData || !this.gameData.levels?.[0]?.layers?.[0]) {
+            console.warn(`No hay datos disponibles para el player ${id}, se ha cancelado la conexión.`);
+            return null;
+        }
         let level = this.gameData["levels"][0];
         let layer = level["layers"][0];
         let pos = {
@@ -73,9 +80,15 @@ class GameLogic {
             y: 160 / (layer.tilesHeight * layer["tileMap"].length)
         }
         console.log(pos);
-
-        this.players.set(id, {
+        let color = COLORS[Math.floor(Math.random() * COLORS.length)];
+         while (this.usedColors.has(color)) {
+             color = COLORS[Math.floor(Math.random() * COLORS.length)];
+         }
+         this.usedColors.add(color);
+ 
+         this.waitingPlayers.set(id, {
             id,
+            ready: false,
             x: pos.x,
             y: pos.y,
             speed: SPEED,
@@ -84,14 +97,24 @@ class GameLogic {
             map: "Main",
             zone: "", // Col·lisió amb objectes o zones
             hasFlag: false,
+            color: color,
         });
 
-        return this.players.get(id);
+        return this.waitingPlayers.get(id);
     }
 
     // Es desconnecta un client/jugador
     removeClient(id) {
-        this.players.delete(id);
+        if (this.players.has(id)) {
+            this.usedColors.delete(this.players.get(id).color);
+            this.players.delete(id);
+            
+        }
+        if (this.waitingPlayers.has(id)) {
+            this.usedColors.delete(this.waitingPlayers.get(id).color);
+            this.waitingPlayers.delete(id);
+            
+        }
     }
 
     // Tractar un missatge d'un client/jugador
@@ -110,6 +133,10 @@ class GameLogic {
                             this.players.get(id).moving = false;
                         }
                     }
+                    break;
+                case "ready":
+                     this.players.set(id, this.waitingPlayers.get(id));
+                     this.waitingPlayers.delete(id);
                     break;
                 default:
                     break;
@@ -132,12 +159,15 @@ class GameLogic {
     // Blucle de joc (funció que s'executa contínuament)
     updateGame(fps) {
         if(this.gameStarted) {
+            if(this.players.size <= 0) {
+                this.gameStarted = false;
+            }
             let deltaTime = 1 / fps;
             this.elapsedTime += deltaTime;
 
             // Actualitzar la posició dels clients
             this.players.forEach(client => {
-
+                if (!client) return;
                 let newClientX = client.x;
                 let newClientY = client.y;
                 if(client.moving) {
@@ -148,12 +178,21 @@ class GameLogic {
                 }
                 
 
-                console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
+               // console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
             });
         }else {
-            if(this.players.size >= 4) {
+           
+            if(this.players.size >= 1 && !this.waitingToStart) {
+                console.log("Empezando el juego...");
+                this.waitingToStart = true;
                 setTimeout(() => {
-                    this.gameStarted = true;
+                    if(this.players.size >= 1) {
+                        this.gameStarted = true;
+                        this.waitingToStart = false;
+                        console.log("¡Juego empezado!");
+                    }else {
+                        this.waitingToStart = false;
+                    }
                 }, 5000);
             }
         }
