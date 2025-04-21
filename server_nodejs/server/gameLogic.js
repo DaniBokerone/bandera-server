@@ -136,7 +136,10 @@ class GameLogic {
           }
           return;
         }
-      
+        
+        // radio del sprite expresado en porcentaje (una sola vez mejor en constructor)
+        const RADIUS_X = 250 / 2 / 4000; // 0.03125
+        const RADIUS_Y = 250 / 2 / 3000; // ~0.04167
         const deltaTime = 1 / fps;
       
         this.players.forEach(client => {
@@ -145,13 +148,15 @@ class GameLogic {
           // 1) Calcula desplazamiento sin redondear
           const dir = DIRECTIONS[client.direction];
           let newX = client.x + dir.dx * client.speed * deltaTime;
-          let newY = client.y + dir.dy * client.speed * deltaTime;
+            let newY = client.y + dir.dy * client.speed * deltaTime;
+
           
           // 2) Clampea al rango [0,1] (sin redondear aún)
-          newX = Math.min(Math.max(newX, 0), 1);
-          newY = Math.min(Math.max(newY, 0), 1);
-          console.log(`Client ${client.id} - X: ${newX}, Y: ${newY}`);
+          newX = Math.min(Math.max(newX, RADIUS_X), 1 - RADIUS_X);
+          newY = Math.min(Math.max(newY, RADIUS_Y), 1 - RADIUS_Y);
           
+          console.log(`Client ${client.id} - X: ${newX}, Y: ${newY}`);
+
           // 3) Asigna la posición con toda la precisión
           client.x = newX;
           client.y = newY;
