@@ -1,6 +1,127 @@
-<html>
-    <head></head>
-    <body>
-        Default web
-    </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Miniflag</title>
+
+  <!-- Google Font: Space Mono (ligera y monospace) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #fafafa;
+      --accent: #1f2937; /* gris‑oscuro neutro */
+      --primary: #2563eb;/* azul vivo */
+    }
+
+    /* Reset mínimo */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1.75rem;
+      text-align: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    p {
+      max-width: 28ch;
+      font-size: 1.125rem;
+      line-height: 1.5;
+    }
+
+    h4 {
+      color: slategray;
+      font-weight: 100; 
+      max-width: 28ch;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .qr {
+      width: 200px;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--accent);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.9rem 2rem;
+      text-decoration: none;
+      color: #ffffff;
+      background: var(--primary);
+      border-radius: 0.5rem;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-download {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.9rem 3.5rem;
+      text-decoration: none;
+      color: #ffffff;
+      background: rgb(37, 197, 133);
+      border-radius: 0.5rem;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    footer {
+      bottom: 1rem;
+      font-size: 0.75rem;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Miniflag</h1>
+  <p>Descarga nuestra APK y compite desde tu móvil con tus amigos.</p>
+
+  <!-- Sustituye esta imagen por tu QR definitivo -->
+  <img class="qr" src="qr.png" alt="Código QR para descargar Miniflag APK" />
+
+  <h4>También puedes descargar el juego desde el siguite botón.</h4>
+
+  <a class="btn-download" href="https://bandera5.ieti.site/miniflag.apk" target="_blank" rel="noopener">Descarga aquí</a>
+
+
+  <a class="btn" href="https://bandera5.ieti.site/web/" target="_blank" rel="noopener">Ver partida en vivo</a>
+
+  <footer>© 2025 Miniflag</footer>
+</body>
 </html>
