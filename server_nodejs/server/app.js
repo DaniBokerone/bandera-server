@@ -96,7 +96,7 @@ gameLoop.run = (fps) => {
     game.updateGame(fps);
     ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
 };
-
+gameLoop.start();
 
 // Gestionar el tancament del servidor
 process.on('SIGTERM', shutDown);

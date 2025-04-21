@@ -27,7 +27,6 @@ class GameLogic {
 
     constructor() {
         this.gameStarted = false;
-        this.waitingToStart = false;
         this.players = new Map();
         // this.loadGameData();
         this.elapsedTime = 0;
