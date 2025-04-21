@@ -80,7 +80,7 @@ ws.onConnection = (socket, id) => {
 
 // Gestionar missatges rebuts dels clients
 ws.onMessage = (socket, id, msg) => {
-    if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
+    //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
     game.handleMessage(id, msg);
 };
 

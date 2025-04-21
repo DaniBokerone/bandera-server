@@ -161,7 +161,7 @@ class GameLogic {
     }
 
     checkValidPosition(x, y, client) {
-        if(x>1 || y>1){
+        if(x>=1 || y>=1){
             console.log("Client fuera de límites");
             return false;
         }
