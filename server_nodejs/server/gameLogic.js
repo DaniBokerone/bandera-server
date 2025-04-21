@@ -27,7 +27,7 @@ class GameLogic {
     constructor() {
         this.gameStarted = true;
         this.players = new Map();
-        this.loadGameData();
+        // this.loadGameData();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
     }
@@ -148,7 +148,7 @@ class GameLogic {
                 }
                 
 
-                console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
+                //console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
             });
         }else {
             if(this.players.size >= 4) {

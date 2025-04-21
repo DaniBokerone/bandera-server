@@ -26,6 +26,11 @@ const app = express();
 app.use(express.static('public'));
 app.use(express.json());
 
+(async () => {
+    await game.loadGameData(); 
+    gameLoop.start();
+})();
+
 // Ruta GET para testear la conexión desde un dispositivo externo
 app.get('/test', (req, res) => {
   res.send('Servidor funcionando correctamente!');
