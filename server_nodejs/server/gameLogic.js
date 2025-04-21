@@ -131,104 +131,58 @@ class GameLogic {
 
     // Blucle de joc (funció que s'executa contínuament)
     updateGame(fps) {
-        if(this.gameStarted) {
-            let deltaTime = 1 / fps;
-            this.elapsedTime += deltaTime;
-
-            // Actualitzar la posició dels clients
-            this.players.forEach(client => {
-
-                let newClientX = client.x;
-                let newClientY = client.y;
-                if(client.moving) {
-                    let clientDirection = this.checkValidPosition(newClientX, newClientY, client)
-                    if(clientDirection == "full"){
-                        client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
-                        client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
-                    }else if(clientDirection == "x"){
-                        client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
-                    }else if(clientDirection == "y"){
-                        client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
-                    }
-                }
+        if (!this.gameStarted) {
+          if (this.players.size >= 4) {
+            setTimeout(() => this.gameStarted = true, 5000);
+          }
+          return;
+        }
+      
+        const deltaTime = 1 / fps;
+      
+        this.players.forEach(client => {
+          if (!client.moving) return;
+      
+          // 1) Calcula desplazamiento
+          const dir = DIRECTIONS[client.direction];
+          let newX = client.x + dir.dx * client.speed * deltaTime;
+          let newY = client.y + dir.dy * client.speed * deltaTime;
+      
+          // 2) Redondea a una decimal
+          newX = Math.round(newX * 10) / 10;
+          newY = Math.round(newY * 10) / 10;
+      
+          // 3) Clampea al rango [0,1]
+          const clampedX = Math.min(Math.max(newX, 0), 1);
+          const clampedY = Math.min(Math.max(newY, 0), 1);
+      
+          // 4) Si hubo ajuste, lo registras
+          if (clampedX !== newX || clampedY !== newY) {
+            console.log(
+              `Client fuera de límites (ajustado) - X: ${newX}→${clampedX}, Y: ${newY}→${clampedY}`
+            );
+          }
+      
+          // 5) Asigna
+          client.x = clampedX;
+          client.y = clampedY;
                 
-
-                //console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
-            });
-        }else {
-            if(this.players.size >= 4) {
-                setTimeout(() => {
-                    this.gameStarted = true;
-                }, 5000);
-            }
-        }
-        
+          //console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
+        });
     }
+      
+                           
+  
 
-    checkValidPosition(x, y, client) {
-        x =  Number(x.toFixed(1)); 
-        y =  Number(y.toFixed(1)); 
-        if(x<1 && y<1){
-            return "full";
-            // console.log("Client fuera de límites - X: " + x + ", Y: " + y);
-            // return false;
-        }else if(x>1){
-            return "y";
-
-        }else if(y>1){
-            return "y";
-            
-        }else {
-            console.log("Client fuera de límites - X: " + x + ", Y: " + y);
-        }
-        return true;
-        // let levels = this.gameData.levels
-        // let level;
-        // if(client) {
-        //     level = levels.filter((level)=> {
-        //         return level.name == client.map;
-        //     })[0];
-        // }else {
-        //     level = levels.filter((level) => {
-        //         return level.name == this.map;
-        //     })[0];
-        // }
-        // if(!level) return false;
-        
-        // let layer = level["layers"][0];
-        // let width = layer.tileMap[0].length;
-        // let height = layer.tileMap.length;
-        // let zones = level["zones"];
-        // // Convertir la posición normalizada a coordenadas reales
-        // let realX = x * layer.tilesWidth * width;
-        // let realY = y * layer.tilesHeight * height;
-        
-        // // Obtener dimensiones reales del sprite
-        // let sprite = levels[0]["sprites"][0];
-    
-        // // Definir la hitbox: 16x16 píxeles en la parte inferior central del sprite
-        // const HITBOX_SIZE = 16;
-        // let hitboxX = realX + (sprite.width / 2) - (HITBOX_SIZE / 2);
-        // let hitboxY = realY + sprite.height - HITBOX_SIZE;
-        // let hitboxWidth = HITBOX_SIZE;
-        // let hitboxHeight = HITBOX_SIZE;
-    
-        // // Comprobar intersección entre la hitbox y cada zona
-        // for (let zone of zones) {
-        //     let zoneX = zone.x;
-        //     let zoneY = zone.y;
-        //     let zoneWidth = zone.width;
-        //     let zoneHeight = zone.height;
-            
-        //     if (hitboxX < zoneX + zoneWidth &&
-        //         hitboxX + hitboxWidth > zoneX &&
-        //         hitboxY < zoneY + zoneHeight &&
-        //         hitboxY + hitboxHeight > zoneY) {
-        //         return zone.type;
-        //     }
-        // }
-        // return "";
-    }
+    // checkValidPosition(x, y, client) {
+    //     x =  Number(x.toFixed(1)); 
+    //     y =  Number(y.toFixed(1)); 
+    //     if(x>1 || y>1){
+    //         console.log("Client fuera de límites - X: " + x + ", Y: " + y);
+    //         return false;
+    //     }
+    //     return true;
+    // }
 
     // Detectar si dos rectangles es sobreposen
     areRectColliding(x1, y1, w1, h1, x2, y2, w2, h2) {
