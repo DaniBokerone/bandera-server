@@ -146,11 +146,12 @@ class GameLogic {
           const dir = DIRECTIONS[client.direction];
           let newX = client.x + dir.dx * client.speed * deltaTime;
           let newY = client.y + dir.dy * client.speed * deltaTime;
-      
+          
           // 2) Clampea al rango [0,1] (sin redondear aún)
           newX = Math.min(Math.max(newX, 0), 1);
           newY = Math.min(Math.max(newY, 0), 1);
-      
+          console.log(`Client ${client.id} - X: ${newX}, Y: ${newY}`);
+          
           // 3) Asigna la posición con toda la precisión
           client.x = newX;
           client.y = newY;
