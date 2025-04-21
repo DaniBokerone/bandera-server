@@ -3,7 +3,7 @@
 const path = require('path');
 const fs = require('fs').promises;
 
-const COLORS = ['green', 'blue', 'orange', 'red', 'purple'];
+const COLORS = ['green', 'blue', 'darkgreen'];
 const SPEED = 0.2;
 
 const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
