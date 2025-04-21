@@ -5,7 +5,6 @@ const fs = require('fs').promises;
 
 const COLORS = ['green', 'blue', 'darkgreen'];
 const SPEED = 0.2;
-const MAX_PLAYERS = 3;
 
 const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
 const WIDTH_IN_TILES = 48; // Ancho del mapa en tiles
@@ -26,12 +25,11 @@ const DIRECTIONS = {
 class GameLogic {
 
     constructor() {
-        this.gameStarted = false;
+        this.gameStarted = true;
         this.players = new Map();
         // this.loadGameData();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
-        this.usedColors = new Set();
     }
 
     async loadGameData() {
@@ -68,10 +66,6 @@ class GameLogic {
 
     // Es connecta un client/jugador
     addClient(id) {
-        if (!this.gameData || !this.gameData.levels?.[0]?.layers?.[0]) {
-            console.warn(`No hay datos disponibles para el player ${id}, se ha cancelado la conexión.`);
-            return null;
-        }
         let level = this.gameData["levels"][0];
         let layer = level["layers"][0];
         let pos = {
@@ -79,15 +73,9 @@ class GameLogic {
             y: 160 / (layer.tilesHeight * layer["tileMap"].length)
         }
         console.log(pos);
-        let color = COLORS[Math.floor(Math.random() * COLORS.length)];
-         while (this.usedColors.has(color)) {
-             color = COLORS[Math.floor(Math.random() * COLORS.length)];
-         }
-         this.usedColors.add(color);
- 
-         this.waitingPlayers.set(id, {
+
+        this.players.set(id, {
             id,
-            ready: false,
             x: pos.x,
             y: pos.y,
             speed: SPEED,
@@ -96,24 +84,14 @@ class GameLogic {
             map: "Main",
             zone: "", // Col·lisió amb objectes o zones
             hasFlag: false,
-            color: color,
         });
 
-        return this.waitingPlayers.get(id);
+        return this.players.get(id);
     }
 
     // Es desconnecta un client/jugador
     removeClient(id) {
-        if (this.players.has(id)) {
-            this.usedColors.delete(this.players.get(id).color);
-            this.players.delete(id);
-            
-        }
-        if (this.waitingPlayers.has(id)) {
-            this.usedColors.delete(this.waitingPlayers.get(id).color);
-            this.waitingPlayers.delete(id);
-            
-        }
+        this.players.delete(id);
     }
 
     // Tractar un missatge d'un client/jugador
@@ -132,10 +110,6 @@ class GameLogic {
                             this.players.get(id).moving = false;
                         }
                     }
-                    break;
-                case "ready":
-                     this.players.set(id, this.waitingPlayers.get(id));
-                     this.waitingPlayers.delete(id);
                     break;
                 default:
                     break;
