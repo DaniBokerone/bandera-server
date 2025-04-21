@@ -29,7 +29,7 @@ class GameLogic {
         this.gameStarted = false;
         this.waitingToStart = false;
         this.players = new Map();
-        this.waitingPlayers = new Map();
+        // this.loadGameData();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
         this.usedColors = new Set();
@@ -156,101 +156,64 @@ class GameLogic {
           });
       }
 
-    // Blucle de joc (funció que s'executa contínuament)
-    updateGame(fps) {
-        if(this.gameStarted) {
-            if(this.players.size <= 0) {
-                this.gameStarted = false;
-            }
-            let deltaTime = 1 / fps;
-            this.elapsedTime += deltaTime;
-
-            // Actualitzar la posició dels clients
-            this.players.forEach(client => {
-                if (!client) return;
-                let newClientX = client.x;
-                let newClientY = client.y;
-                if(client.moving) {
-                    if(this.checkValidPosition(newClientX, newClientY, client)){
-                        client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
-                        client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
-                    }
-                }
-                
-
-               // console.log(`Client ${client.id} - X: ${client.x}, Y: ${client.y}`);
-            });
-        }else {
-           
-            if(this.players.size >= 1 && !this.waitingToStart) {
-                console.log("Empezando el juego...");
-                this.waitingToStart = true;
-                setTimeout(() => {
-                    if(this.players.size >= 1) {
-                        this.gameStarted = true;
-                        this.waitingToStart = false;
-                        console.log("¡Juego empezado!");
-                    }else {
-                        this.waitingToStart = false;
-                    }
-                }, 5000);
-            }
+      updateGame(fps) {
+        if (!this.gameStarted) {
+          if (this.players.size >= 4) {
+            setTimeout(() => this.gameStarted = true, 5000);
+          }
+          return;
         }
         
-    }
+        // radio del sprite expresado en porcentaje (una sola vez mejor en constructor)
+        const RADIUS_X = 250 / 2 / 4000; // 0.03125
+        const RADIUS_Y = 250 / 2 / 3000; // ~0.04167
+        const deltaTime = 1 / fps;
+      
+        this.players.forEach(client => {
+          if (!client.moving) return;
+      
+          // 1) Calcula desplazamiento sin redondear
+          const dir = DIRECTIONS[client.direction];
+          let newX = client.x + dir.dx * client.speed * deltaTime;
+            let newY = client.y + dir.dy * client.speed * deltaTime;
 
-    checkValidPosition(x, y, client) {
-        if(x>1 || y>1){
-            return false;
-        }
-        return true;
-        // let levels = this.gameData.levels
-        // let level;
-        // if(client) {
-        //     level = levels.filter((level)=> {
-        //         return level.name == client.map;
-        //     })[0];
-        // }else {
-        //     level = levels.filter((level) => {
-        //         return level.name == this.map;
-        //     })[0];
-        // }
-        // if(!level) return false;
-        
-        // let layer = level["layers"][0];
-        // let width = layer.tileMap[0].length;
-        // let height = layer.tileMap.length;
-        // let zones = level["zones"];
-        // // Convertir la posición normalizada a coordenadas reales
-        // let realX = x * layer.tilesWidth * width;
-        // let realY = y * layer.tilesHeight * height;
-        
-        // // Obtener dimensiones reales del sprite
-        // let sprite = levels[0]["sprites"][0];
-    
-        // // Definir la hitbox: 16x16 píxeles en la parte inferior central del sprite
-        // const HITBOX_SIZE = 16;
-        // let hitboxX = realX + (sprite.width / 2) - (HITBOX_SIZE / 2);
-        // let hitboxY = realY + sprite.height - HITBOX_SIZE;
-        // let hitboxWidth = HITBOX_SIZE;
-        // let hitboxHeight = HITBOX_SIZE;
-    
-        // // Comprobar intersección entre la hitbox y cada zona
-        // for (let zone of zones) {
-        //     let zoneX = zone.x;
-        //     let zoneY = zone.y;
-        //     let zoneWidth = zone.width;
-        //     let zoneHeight = zone.height;
-            
-        //     if (hitboxX < zoneX + zoneWidth &&
-        //         hitboxX + hitboxWidth > zoneX &&
-        //         hitboxY < zoneY + zoneHeight &&
-        //         hitboxY + hitboxHeight > zoneY) {
-        //         return zone.type;
-        //     }
-        // }
-        // return "";
-    }
+          
+          // 2) Clampea al rango [0,1] (sin redondear aún)
+          newX = Math.min(Math.max(newX, RADIUS_X), 1 - RADIUS_X);
+          newY = Math.min(Math.max(newY, RADIUS_Y), 1 - RADIUS_Y);
+          
+          console.log(`Client ${client.id} - X: ${newX}, Y: ${newY}`);
+
+          // 3) Asigna la posición con toda la precisión
+          client.x = newX;
+          client.y = newY;
+      
+        //   // 4) Envía la posición **redondeada** sólo para el servidor o la UI
+        //   const sendX = Math.round(newX * 10) / 10;
+        //   const sendY = Math.round(newY * 10) / 10;
+        //   if (sendX !== this.lastSentX || sendY !== this.lastSentY) {
+        //     this.conn.sendData(
+        //       JSON.stringify({ type: "position", x: sendX, y: sendY })
+        //     );
+        //     this.lastSentX = sendX;
+        //     this.lastSentY = sendY;
+        //   }
+        });
+      }
+      
+      
+                           
+  
+
+    // checkValidPosition(x, y, client) {
+    //     x =  Number(x.toFixed(1)); 
+    //     y =  Number(y.toFixed(1)); 
+    //     if(x>1 || y>1){
+    //         console.log("Client fuera de límites - X: " + x + ", Y: " + y);
+    //         return false;
+    //     }
+    //     return true;
+    // }
 
     // Detectar si dos rectangles es sobreposen
     areRectColliding(x1, y1, w1, h1, x2, y2, w2, h2) {
