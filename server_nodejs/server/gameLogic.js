@@ -141,8 +141,13 @@ class GameLogic {
                 let newClientX = client.x;
                 let newClientY = client.y;
                 if(client.moving) {
-                    if(this.checkValidPosition(newClientX, newClientY, client)){
+                    let clientDirection = this.checkValidPosition(newClientX, newClientY, client)
+                    if(clientDirection == "full"){
                         client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
+                        client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
+                    }else if(clientDirection == "x"){
+                        client.x = newClientX + (DIRECTIONS[client.direction].dx * client.speed * deltaTime);
+                    }else if(clientDirection == "y"){
                         client.y = newClientY + (DIRECTIONS[client.direction].dy * client.speed * deltaTime);
                     }
                 }
@@ -163,9 +168,18 @@ class GameLogic {
     checkValidPosition(x, y, client) {
         x =  Number(x.toFixed(1)); 
         y =  Number(y.toFixed(1)); 
-        if(x>1 || y>1){
+        if(x<1 || y<1){
+            return "full";
+            // console.log("Client fuera de límites - X: " + x + ", Y: " + y);
+            // return false;
+        }else if(x>1){
+            return "y";
+
+        }else if(y>1){
+            return "y";
+            
+        }else {
             console.log("Client fuera de límites - X: " + x + ", Y: " + y);
-            return false;
         }
         return true;
         // let levels = this.gameData.levels
