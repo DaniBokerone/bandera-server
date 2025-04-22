@@ -73,6 +73,16 @@ function safeJsonParse(str) {
 ws.onConnection = (socket, id) => {
     const meta = ws.getClientData(id);           
   if (meta && meta.role === 'player') {
+  // Desconecta otros sockets player del mismo remoteAddress
+  ws.getClientsData().forEach(c => {
+    if (c.role === 'player' &&
+        c.id !== id &&
+        c.socket && c.socket._socket.remoteAddress === socket._socket.remoteAddress) {
+      c.socket.close(4000, 'Duplicate connection');
+    }
+  });
+
+  game.addClient(id);
     game.addClient(id);                       
     socket.send(JSON.stringify({type:'playerCount',
                                 count: game.players.size}));
@@ -82,7 +92,7 @@ ws.onConnection = (socket, id) => {
 
 ws.onMessage = (socket, id, raw) => {
    
-
+    
     game.handleMessage(id, raw);   // resto del flujo
 };
 

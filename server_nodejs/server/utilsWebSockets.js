@@ -29,7 +29,7 @@ class Obj {
         console.log("Client connected");
         const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
         const role = params.get('role') || 'spectator';
-        console.log("Client role: " + role);
+        console.log("Client role: " + params.get('role'));
         const id  = 'C' + uuidv4().substring(0, 5).toUpperCase();
         const metadata = { id, role };          
         this.socketsClients.set(con, metadata);
