@@ -62,12 +62,12 @@ function safeJsonParse(str) {
     }
   }
 
-//   function broadcastPlayerCount() {
-//     ws.broadcast(JSON.stringify({
-//       type: 'playerCount',
-//       count: game.players.size          
-//     }));
-//   }
+  function broadcastPlayerCount() {
+    ws.broadcast(JSON.stringify({
+      type: 'playerCount',
+      count: game.players.size          
+    }));
+  }
   
 // app.js
 ws.onConnection = (socket, id) => {
