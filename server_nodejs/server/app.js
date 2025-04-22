@@ -52,35 +52,37 @@ const httpServer = app.listen(port, '0.0.0.0', () => {
 // Gestionar WebSockets
 ws.init(httpServer, port);
 
+function safeJsonParse(str) {
+    try {
+      const obj = JSON.parse(str);
+      // Opcional: comprueba que sea realmente un objeto / array
+      return obj !== null && typeof obj === 'object' ? obj : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
 // app.js
 ws.onConnection = (socket, id) => {
     socket.isInitialised = false;
 };
 
-ws.onMessage = (socket, id, msg) => {
+ws.onMessage = (socket, id, raw) => {
     //const msg = JSON.parse(raw);
-    console.log(`New message from ${id}: ${msg}...`);
+    console.log(`New message from ${id}: ${raw}...`);
     // 1) mensaje de espectador
+    const text = Buffer.isBuffer(raw) ? raw.toString() : raw;
 
-    try {
-        msg = JSON.parse(msg);
-        if (msg.type === 'spectator') {
-            socket.role = 'spectator';
-            socket.send(JSON.stringify({ type: 'spectator-ack' }));
-            return;
-        }
-    } catch (error) {
-    }
+    const msg = safeJsonParse(text);
 
     // 2) primer mensaje de jugador real
-    if (!socket.isInitialised) {
+    if (!msg) {
         socket.role = 'player';
         game.addClient(id);
         socket.isInitialised = true;
     }
 
-    game.handleMessage(id, msg);   // resto del flujo
+    game.handleMessage(id, raw);   // resto del flujo
 };
 
 
