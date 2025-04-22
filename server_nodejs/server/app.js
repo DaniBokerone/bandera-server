@@ -80,7 +80,12 @@ ws.onMessage = (socket, id, raw) => {
         socket.role = 'player';
         game.addClient(id);
         socket.isInitialised = true;
-    }
+        
+    }else if (msg.type === 'spectator') {
+        socket.role = 'spectator';
+        socket.send(JSON.stringify({ type: 'spectator-ack' }));
+        return;                     
+      }
 
     game.handleMessage(id, raw);   // resto del flujo
 };
