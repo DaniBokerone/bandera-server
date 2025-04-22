@@ -59,10 +59,10 @@ ws.onConnection = (socket, id) => {
   };
   
   ws.onMessage = (socket, id, raw) => {
-    const msg = JSON.parse(raw);
+    //const msg = JSON.parse(raw);
   
     // 1) mensaje de espectador
-    if (msg.type === 'spectator') {
+    if (msg === 'spectator') {
       socket.role = 'spectator';
       socket.send(JSON.stringify({ type: 'spectator-ack' }));
       return;                     

@@ -49,7 +49,7 @@ class WebSocketsHandler {
       onError?.call(e);
     }
 
-    sendMessage(jsonEncode({"type": "spectator"}));
+    sendMessage("spectator");
   }
 
   void _handleMessage(String message) {
