@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';             // kIsWeb
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 enum ConnectionStatus { disconnected, disconnecting, connecting, connected }
@@ -13,6 +13,7 @@ class WebSocketsHandler {
   WebSocketChannel? _socketClient;
   ConnectionStatus connectionStatus = ConnectionStatus.disconnected;
 
+
   void connectToServer(
     String serverIp,
     int serverPort,
@@ -21,13 +22,29 @@ class WebSocketsHandler {
     void Function()? onDone,
   }) async {
     _callback = callback;
-    ip = serverIp;
+    ip   = serverIp;
     port = serverPort.toString();
 
     connectionStatus = ConnectionStatus.connecting;
 
     try {
-      _socketClient = WebSocketChannel.connect(Uri.parse("wss://$ip?role=spectator"));
+      
+      final Uri uri;
+      if (kIsWeb) {
+       
+        final base   = Uri.base;                       
+        final secure = base.scheme == 'https';
+        uri = Uri(
+          scheme: secure ? 'wss' : 'ws',
+          host:   base.host,
+          port:   base.hasPort ? base.port : null,
+          queryParameters: {'role': 'spectator'},
+        );
+      } else {
+        uri = Uri.parse('wss://$ip?role=spectator');
+      }
+
+      _socketClient = WebSocketChannel.connect(uri);
       connectionStatus = ConnectionStatus.connected;
 
       _socketClient!.stream.listen(
@@ -48,34 +65,23 @@ class WebSocketsHandler {
       connectionStatus = ConnectionStatus.disconnected;
       onError?.call(e);
     }
-
-    //sendMessage(jsonEncode({"type": "spectator"}));
   }
+
 
   void _handleMessage(String message) {
     try {
       final data = jsonDecode(message);
       if (data is Map<String, dynamic> &&
-          data.containsKey("type") &&
           data["type"] == "welcome" &&
           data.containsKey("id")) {
         socketId = data["id"];
         if (kDebugMode) {
-          print("Client ID assignat pel servidor: $socketId");
+          print("Client ID asignado por el servidor: $socketId");
         }
-      } else if (data is Map<String, dynamic> &&
-          data.containsKey("type") &&
-          data["type"] == "spectator" &&
-          data.containsKey("id") &&
-          socketId == data["id"]) {
-        socketId = data["newId"];
-      } else if (data is Map<String, dynamic> &&
-          data.containsKey("type") &&
-          data["type"] == "update" &&
-          data.containsKey("gameData")) {}
+      }
     } catch (e) {
       if (kDebugMode) {
-        print("Error processant missatge WebSocket: $e");
+        print("Error procesando mensaje WebSocket: $e");
       }
     }
   }
