@@ -58,7 +58,7 @@ ws.onConnection = (socket, id) => {
     socket.isInitialised = false;  
   };
   
-  ws.onMessage = (socket, id, raw) => {
+  ws.onMessage = (socket, id, msg) => {
     //const msg = JSON.parse(raw);
   
     // 1) mensaje de espectador
@@ -76,7 +76,7 @@ ws.onConnection = (socket, id) => {
       socket.isInitialised = true;
     }
   
-    game.handleMessage(id, raw);   // resto del flujo
+    game.handleMessage(id, msg);   // resto del flujo
   };
 
   
