@@ -27,13 +27,13 @@ app.use(express.static('public'));
 app.use(express.json());
 
 (async () => {
-    await game.loadGameData(); 
+    await game.loadGameData();
     gameLoop.start();
 })();
 
 // Ruta GET para testear la conexión desde un dispositivo externo
 app.get('/test', (req, res) => {
-  res.send('Servidor funcionando correctamente!');
+    res.send('Servidor funcionando correctamente!');
 });
 
 // app.get('/item-position', (req, res) => {
@@ -55,37 +55,42 @@ ws.init(httpServer, port);
 
 // app.js
 ws.onConnection = (socket, id) => {
-    socket.isInitialised = false;  
-  };
-  
-  ws.onMessage = (socket, id, msg) => {
+    socket.isInitialised = false;
+};
+
+ws.onMessage = (socket, id, msg) => {
     //const msg = JSON.parse(raw);
     console.log(`New message from ${id}: ${msg}...`);
     // 1) mensaje de espectador
-    if (msg === 'spectator') {
-      socket.role = 'spectator';
-      socket.send(JSON.stringify({ type: 'spectator-ack' }));
-      return;                     
+
+    try {
+        msg = JSON.parse(msg);
+        if (msg.type === 'spectator') {
+            socket.role = 'spectator';
+            socket.send(JSON.stringify({ type: 'spectator-ack' }));
+            return;
+        }
+    } catch (error) {
     }
-  
+
     // 2) primer mensaje de jugador real
     if (!socket.isInitialised) {
-      socket.role = 'player';
-      game.addClient(id);
-      socket.isInitialised = true;
+        socket.role = 'player';
+        game.addClient(id);
+        socket.isInitialised = true;
     }
-  
-    game.handleMessage(id, msg);   // resto del flujo
-  };
 
-  
+    game.handleMessage(id, msg);   // resto del flujo
+};
+
+
 // // Què fa el servidor quan un client es connecta
 // ws.onConnection = (socket, id) => {
 //   if (debug) console.log("WebSocket client connected: " + id);
 //   game.addClient(id);
 
 
-  
+
 //     //Cuando entra jugador - Numero de players conectados
 //     socket.send(JSON.stringify({ type: "playerCount", count: game.players.size }));
 
