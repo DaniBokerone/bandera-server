@@ -72,7 +72,6 @@ ws.onConnection = (socket, id) => {
     if (!socket.isInitialised) {
       socket.role = 'player';
       game.addClient(id);
-      broadcastPlayerCount();
       socket.isInitialised = true;
     }
   
