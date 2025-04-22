@@ -62,39 +62,31 @@ function safeJsonParse(str) {
     }
   }
 
-  function broadcastPlayerCount() {
-    ws.broadcast(JSON.stringify({
-      type: 'playerCount',
-      count: game.players.size          
-    }));
-  }
+//   function broadcastPlayerCount() {
+//     ws.broadcast(JSON.stringify({
+//       type: 'playerCount',
+//       count: game.players.size          
+//     }));
+//   }
   
 // app.js
 ws.onConnection = (socket, id) => {
-    socket.isInitialised = false;
+    const meta = ws.getClientData(id);           
+  if (meta && meta.role === 'player') {
+    game.addClient(id);                       
+    socket.send(JSON.stringify({type:'playerCount',
+                                count: game.players.size}));
+   broadcastPlayerCount();
+  }
 };
 
 ws.onMessage = (socket, id, raw) => {
     //const msg = JSON.parse(raw);
     console.log(`New message from ${id}: ${raw}...`);
-    // 1) mensaje de espectador
     const text = Buffer.isBuffer(raw) ? raw.toString() : raw;
+   const msg  = safeJsonParse(text);
+   if (!msg) return;
 
-    const msg = safeJsonParse(text);
-        
-
-    if (msg && msg.type === 'spectator') {
-        socket.role = 'spectator';
-        socket.send(JSON.stringify({ type: 'spectator-ack' }));
-        return;                     
-    }
-
-      socket.role = 'player';
-      console.log("New player");
-        game.addClient(id);     
-        socket.isInitialised = true;
-        socket.send(JSON.stringify({ type: 'playerCount', count: game.players.size }));
-        broadcastPlayerCount();
 
     game.handleMessage(id, raw);   // resto del flujo
 };

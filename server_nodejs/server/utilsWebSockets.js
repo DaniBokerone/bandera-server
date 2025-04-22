@@ -18,20 +18,20 @@ class Obj {
         console.log(`Listening for WebSocket queries on ${port}`)
 
         // What to do when a websocket client connects
-        this.ws.on('connection', (ws) => { this.newConnection(ws) })
+        this.ws.on('connection', (ws, req) => { this.newConnection(ws, req); });
     }
 
     end() {
         this.ws.close()
     }
 
-    // A websocket client connects
-    newConnection(con) {
+    newConnection(con, req) {
         console.log("Client connected");
-    
-        // Generar ID únic per al client
-        const id = "C" + uuidv4().substring(0, 5).toUpperCase();
-        const metadata = { id };
+        const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
+        const role = params.get('role') || 'player';
+      
+        const id  = 'C' + uuidv4().substring(0, 5).toUpperCase();
+        const metadata = { id, role };          
         this.socketsClients.set(con, metadata);
     
         // Enviar missatge de benvinguda amb ID únic

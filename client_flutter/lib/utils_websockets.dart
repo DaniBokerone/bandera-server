@@ -27,7 +27,7 @@ class WebSocketsHandler {
     connectionStatus = ConnectionStatus.connecting;
 
     try {
-      _socketClient = WebSocketChannel.connect(Uri.parse("wss://$ip"));
+      _socketClient = WebSocketChannel.connect(Uri.parse("wss://$ip?role=spectator"));
       connectionStatus = ConnectionStatus.connected;
 
       _socketClient!.stream.listen(
@@ -49,7 +49,7 @@ class WebSocketsHandler {
       onError?.call(e);
     }
 
-    sendMessage(jsonEncode({"type": "spectator"}));
+    //sendMessage(jsonEncode({"type": "spectator"}));
   }
 
   void _handleMessage(String message) {
