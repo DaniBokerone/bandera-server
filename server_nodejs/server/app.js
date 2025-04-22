@@ -60,7 +60,7 @@ ws.onConnection = (socket, id) => {
   
   ws.onMessage = (socket, id, msg) => {
     //const msg = JSON.parse(raw);
-  
+    console.log(`New message from ${id}: ${msg}...`);
     // 1) mensaje de espectador
     if (msg === 'spectator') {
       socket.role = 'spectator';
