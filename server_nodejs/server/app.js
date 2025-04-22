@@ -81,20 +81,20 @@ ws.onMessage = (socket, id, raw) => {
     const text = Buffer.isBuffer(raw) ? raw.toString() : raw;
 
     const msg = safeJsonParse(text);
+        
 
-    // 2) primer mensaje de jugador real
-    if (!msg) {
-        socket.role = 'player';
+    if (msg && msg.type === 'spectator') {
+        socket.role = 'spectator';
+        socket.send(JSON.stringify({ type: 'spectator-ack' }));
+        return;                     
+    }
+
+      socket.role = 'player';
+      console.log("New player");
         game.addClient(id);     
         socket.isInitialised = true;
         socket.send(JSON.stringify({ type: 'playerCount', count: game.players.size }));
         broadcastPlayerCount();
-
-    }else if (msg.type === 'spectator') {
-        socket.role = 'spectator';
-        socket.send(JSON.stringify({ type: 'spectator-ack' }));
-        return;                     
-      }
 
     game.handleMessage(id, raw);   // resto del flujo
 };
