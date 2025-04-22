@@ -81,12 +81,7 @@ ws.onConnection = (socket, id) => {
 };
 
 ws.onMessage = (socket, id, raw) => {
-    //const msg = JSON.parse(raw);
-    console.log(`New message from ${id}: ${raw}...`);
-    const text = Buffer.isBuffer(raw) ? raw.toString() : raw;
-   const msg  = safeJsonParse(text);
-   if (!msg) return;
-
+   
 
     game.handleMessage(id, raw);   // resto del flujo
 };
