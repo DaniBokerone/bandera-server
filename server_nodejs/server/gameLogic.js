@@ -204,7 +204,7 @@ class GameLogic {
             players: Array.from(this.players.values()),
             flagPos: this.flagPos,
         }
-       // console.log(`GameState: ${JSON.stringify(gameState)}`);
+        console.log(`GameState: ${JSON.stringify(gameState)}`);
         return gameState;
     }
 }
