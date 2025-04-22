@@ -28,7 +28,7 @@ class Obj {
     newConnection(con, req) {
         console.log("Client connected");
         const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
-        const role = params.get('role') || 'player';
+        const role = params.get('role') || 'spectator';
         console.log("Client role: " + role);
         const id  = 'C' + uuidv4().substring(0, 5).toUpperCase();
         const metadata = { id, role };          
