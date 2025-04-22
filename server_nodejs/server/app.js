@@ -52,37 +52,53 @@ const httpServer = app.listen(port, '0.0.0.0', () => {
 // Gestionar WebSockets
 ws.init(httpServer, port);
 
-// Què fa el servidor quan un client es connecta
+
+// app.js
 ws.onConnection = (socket, id) => {
-  if (debug) console.log("WebSocket client connected: " + id);
-  game.addClient(id);
-
-  // if (game.players.size === 1 && itemPosition === null) {
-  //   itemPosition = generateRandomItemPosition();
-  //   console.log("Llave generada en:", itemPosition);
-  // }
-
-  // // Cuando entra jugador - Enviar posicion llave 
-  // if (itemPosition) {
-  //     socket.send(JSON.stringify({
-  //         type: "item",
-  //         x: itemPosition.x,
-  //         y: itemPosition.y
-  //     }));
-  // }
+    socket.isInitialised = false;  
+  };
   
-    //Cuando entra jugador - Numero de players conectados
-    socket.send(JSON.stringify({ type: "playerCount", count: game.players.size }));
+  ws.onMessage = (socket, id, raw) => {
+    const msg = JSON.parse(raw);
+  
+    // 1) mensaje de espectador
+    if (msg.type === 'spectator') {
+      socket.role = 'spectator';
+      socket.send(JSON.stringify({ type: 'spectator-ack' }));
+      return;                     
+    }
+  
+    // 2) primer mensaje de jugador real
+    if (!socket.isInitialised) {
+      socket.role = 'player';
+      game.addClient(id);
+      broadcastPlayerCount();
+      socket.isInitialised = true;
+    }
+  
+    game.handleMessage(id, raw);   // resto del flujo
+  };
 
-    //Cuando entra jugador - Actualiza total de players conectados
-    ws.broadcast(JSON.stringify({ type: "playerCount", count: game.players.size }));
-};
+  
+// // Què fa el servidor quan un client es connecta
+// ws.onConnection = (socket, id) => {
+//   if (debug) console.log("WebSocket client connected: " + id);
+//   game.addClient(id);
 
-// Gestionar missatges rebuts dels clients
-ws.onMessage = (socket, id, msg) => {
-    //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
-    game.handleMessage(id, msg);
-};
+
+  
+//     //Cuando entra jugador - Numero de players conectados
+//     socket.send(JSON.stringify({ type: "playerCount", count: game.players.size }));
+
+//     //Cuando entra jugador - Actualiza total de players conectados
+//     ws.broadcast(JSON.stringify({ type: "playerCount", count: game.players.size }));
+// };
+
+// // Gestionar missatges rebuts dels clients
+// ws.onMessage = (socket, id, msg) => {
+//     //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
+//     game.handleMessage(id, msg);
+// };
 
 // Què fa el servidor quan un client es desconnecta
 ws.onClose = (socket, id) => {
