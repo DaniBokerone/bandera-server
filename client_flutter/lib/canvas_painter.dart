@@ -14,7 +14,7 @@ class CanvasPainter extends CustomPainter {
     if (gameState.isEmpty) return;
 
   
-    final backgroundPaint = Paint()..color = Colors.blue;
+    final backgroundPaint = Paint()..color = const ui.Color.fromARGB(255, 33, 229, 243);
     canvas.drawRect(
         Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
 
@@ -23,7 +23,7 @@ class CanvasPainter extends CustomPainter {
       for (var player in gameState["players"]) {
         final x = player["x"] * size.width;
         final y = player["y"] * size.height;
-        final rect = Rect.fromLTWH(x, y, 20, 20);
+        final rect = Rect.fromLTWH(x, y, 30, 30);
         final paint = Paint()..color = Colors.black;
         canvas.drawRect(rect, paint);
       }
@@ -33,7 +33,7 @@ class CanvasPainter extends CustomPainter {
     if (gameState["flagPos"] != null) {
       final fx = gameState["flagPos"]["dx"] * size.width;
       final fy =  gameState["flagPos"]["dy"] * size.height;
-      final flagRect = Rect.fromLTWH(fx, fy, 20, 20);
+      final flagRect = Rect.fromLTWH(fx, fy, 30, 30);
       final flagPaint = Paint()..color = Colors.yellow;
       canvas.drawRect(flagRect, flagPaint);
     }
