@@ -16,7 +16,7 @@ class CanvasPainter extends CustomPainter {
   
     final backgroundPaint = Paint()..color = const ui.Color.fromARGB(255, 33, 229, 243);
     canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+        Rect.fromLTWH(0, 0, size.width+100, size.height+100), backgroundPaint);
 
    
     if (gameState["players"] != null) {
@@ -25,7 +25,7 @@ class CanvasPainter extends CustomPainter {
         final y = player["y"] * size.height;
         final rect = Rect.fromLTWH(x, y, 30, 30);
         final paint = Paint()..color = Colors.black;
-        canvas.drawRect(rect, paint);
+        canvas.drawOval(rect, paint);
       }
     }
 
@@ -35,7 +35,7 @@ class CanvasPainter extends CustomPainter {
       final fy =  gameState["flagPos"]["dy"] * size.height;
       final flagRect = Rect.fromLTWH(fx, fy, 30, 30);
       final flagPaint = Paint()..color = Colors.yellow;
-      canvas.drawRect(flagRect, flagPaint);
+      canvas.drawOval(flagRect, flagPaint);
     }
   }
 
