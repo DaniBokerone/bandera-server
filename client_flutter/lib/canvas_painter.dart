@@ -16,7 +16,7 @@ class CanvasPainter extends CustomPainter {
   
     final backgroundPaint = Paint()..color = const ui.Color.fromARGB(255, 33, 229, 243);
     canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width+100, size.height+100), backgroundPaint);
+        Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
 
    
     if (gameState["players"] != null) {

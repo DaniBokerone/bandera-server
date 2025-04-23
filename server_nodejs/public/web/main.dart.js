@@ -23192,7 +23192,7 @@ r=s.bJ()
 r.sbo(B.rr)
 q=b.a
 p=b.b
-a.en(new A.ad(0,0,0+(q+100),0+(p+100)),r)
+a.en(new A.ad(0,0,0+q,0+p),r)
 if(e.i(0,"players")!=null)for(o=J.Y(e.i(0,"players"));o.m();){n=o.gq()
 m=J.aM(n)
 l=J.pt(m.i(n,"x"),q)
