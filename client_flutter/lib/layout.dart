@@ -79,8 +79,8 @@ class _LayoutState extends State<Layout> {
             },
             child: Center(
               child: SizedBox(
-                width: 300,
-                height: 300,
+                width: 400,
+                height: 450,
                 child: CustomPaint(
                   painter: CanvasPainter(appData, appData.gameData),
                 ),
