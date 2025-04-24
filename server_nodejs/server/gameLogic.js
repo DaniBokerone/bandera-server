@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 
 const COLORS = ['green', 'blue', 'darkgreen'];
 const SPEED = 0.2;
+const MAX_PLAYERS = 4;
 
 const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
 const WIDTH_IN_TILES = 48; // Ancho del mapa en tiles
@@ -27,9 +28,12 @@ class GameLogic {
     constructor() {
         this.gameStarted = true;
         this.players = new Map();
+        this.waitingPlayers = new Map();
         // this.loadGameData();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
+        this.usedColors = new Set();
+
     }
 
     async loadGameData() {
@@ -74,8 +78,15 @@ class GameLogic {
         }
         console.log(pos);
 
-        this.players.set(id, {
+        let color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        while (this.usedColors.has(color)) {
+            color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        }
+        this.usedColors.add(color);
+
+        this.waitingPlayers.set(id, {
             id,
+            ready: false,
             x: pos.x,
             y: pos.y,
             speed: SPEED,
@@ -84,6 +95,7 @@ class GameLogic {
             map: "Main",
             zone: "", // Col·lisió amb objectes o zones
             hasFlag: false,
+            color: color,
         });
 
         return this.players.get(id);
@@ -91,7 +103,17 @@ class GameLogic {
 
     // Es desconnecta un client/jugador
     removeClient(id) {
-        this.players.delete(id);
+        if (this.players.has(id)) {
+            this.usedColors.delete(this.players.get(id).color);
+            this.players.delete(id);
+            
+        }
+        if (this.waitingPlayers.has(id)) {
+            this.usedColors.delete(this.waitingPlayers.get(id).color);
+            this.waitingPlayers.delete(id);
+            
+        }
+        
     }
 
     // Tractar un missatge d'un client/jugador
@@ -110,6 +132,10 @@ class GameLogic {
                             this.players.get(id).moving = false;
                         }
                     }
+                    break;
+                case "ready":
+                    this.players.set(id, this.waitingPlayers.get(id));
+                    this.waitingPlayers.delete(id);
                     break;
                 default:
                     break;
@@ -130,12 +156,12 @@ class GameLogic {
       }
 
       updateGame(fps) {
-        if (!this.gameStarted) {
-          if (this.players.size >= 4) {
-            setTimeout(() => this.gameStarted = true, 5000);
-          }
-          return;
-        }
+        // ******
+        if(this.gameStarted) {
+            if(this.players.size <= 0) {
+                this.gameStarted = false;
+            }
+       
         
         // radio del sprite expresado en porcentaje (una sola vez mejor en constructor)
         const RADIUS_X = 250 / 2 / 4000; // 0.03125
@@ -161,17 +187,23 @@ class GameLogic {
           client.x = newX;
           client.y = newY;
       
-        //   // 4) Envía la posición **redondeada** sólo para el servidor o la UI
-        //   const sendX = Math.round(newX * 10) / 10;
-        //   const sendY = Math.round(newY * 10) / 10;
-        //   if (sendX !== this.lastSentX || sendY !== this.lastSentY) {
-        //     this.conn.sendData(
-        //       JSON.stringify({ type: "position", x: sendX, y: sendY })
-        //     );
-        //     this.lastSentX = sendX;
-        //     this.lastSentY = sendY;
-        //   }
+    
         });
+        } else {
+            if(this.players.size >= 1 && !this.waitingToStart) {
+                console.log("Starting game...");
+                this.waitingToStart = true;
+                setTimeout(() => {
+                    if(this.players.size >= 1) {
+                        this.gameStarted = true;
+                        this.waitingToStart = false;
+                        console.log("Game started!");
+                    }else {
+                        this.waitingToStart = false;
+                    }
+                }, 5000);
+            }
+        }
       }
       
       
