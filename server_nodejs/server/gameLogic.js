@@ -118,6 +118,8 @@ class GameLogic {
 
     // Tractar un missatge d'un client/jugador
     handleMessage(id, msg) {
+        console.log(`Message from ${id}: ${msg}`);
+
         try {
             let obj = JSON.parse(msg);
             if (!obj.type) return;
