@@ -98,7 +98,7 @@ class GameLogic {
             color: color,
         });
 
-        return this.players.get(id);
+        return this.waitingPlayers.get(id);
     }
 
     // Es desconnecta un client/jugador
