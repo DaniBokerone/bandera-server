@@ -50,9 +50,9 @@ class GameLogic {
         },
         this.buildings = [{
             dx: 0.2,
-            dy: 0.8
+            dy: 0.9
         }, {
-            dx: 0.8,
+            dx: 0.9,
             dy: 0.2
         }
     ];
@@ -117,6 +117,13 @@ class GameLogic {
                         } else {
                             this.players.get(id).moving = false;
                         }
+                    }
+                    break;
+                case "flagTouch":
+                    if (this.players.has(id)) {
+                        this.players.get(id).hasFlag = true;
+                        this.gameData.flagPos.dx = 0;
+                        this.gameData.flagPos.dy = 0;
                     }
                     break;
                 default:
