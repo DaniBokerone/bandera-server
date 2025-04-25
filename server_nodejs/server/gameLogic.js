@@ -47,7 +47,12 @@ class GameLogic {
         this.flagPos = {
             dx: Math.random(),
             dy: Math.random()
+        },
+        this.buildings = [{
+            dx: Math.random(),
+            dy: Math.random()
         }
+    ];
     }
 
 
@@ -203,6 +208,7 @@ class GameLogic {
             time: Math.trunc(this.elapsedTime),
             players: Array.from(this.players.values()),
             flagPos: this.flagPos,
+            buildings: this.buildings,
         }
        // console.log(`GameState: ${JSON.stringify(gameState)}`);
         return gameState;
