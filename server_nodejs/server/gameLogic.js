@@ -49,8 +49,11 @@ class GameLogic {
             dy: Math.random()
         },
         this.buildings = [{
-            dx: Math.random(),
-            dy: Math.random()
+            dx: 0.2,
+            dy: 0.8
+        }, {
+            dx: 0.8,
+            dy: 0.2
         }
     ];
     }
