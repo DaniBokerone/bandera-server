@@ -120,6 +120,7 @@ class GameLogic {
                     }
                     break;
                 case "flagTouch":
+                    console.log("Flag touch: " + id);
                     if (this.players.has(id)) {
                         this.players.get(id).hasFlag = true;
                         this.gameData.flagPos.dx = 0;
