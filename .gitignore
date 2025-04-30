@@ -37,3 +37,5 @@ yarn.lock
 
 # Archivos de sistema
 .DS_Store
+
+server_nodejs/.env

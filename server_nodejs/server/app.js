@@ -2,6 +2,7 @@
 const express = require('express');
 const GameLogic = require('./gameLogic.js');
 const webSockets = require('./utilsWebSockets.js');
+const connectToSQL = require('./navision.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
@@ -35,6 +36,24 @@ app.use(express.json());
 app.get('/test', (req, res) => {
     res.send('Servidor funcionando correctamente!');
 });
+
+app.get('/test-sql', async (req, res) => {
+  try {
+    const pool = await connectToSQL();
+    const result = await pool.request().query("SELECT TOP 1 * FROM [Demo Database NAV 2016 (AMS2-24)].[dbo].[CRONUS España S_A_$bandera_tournaments]");
+    res.send({
+      message: "Consulta exitosa 🎉",
+      data: result.recordset[0]
+    });
+  } catch (err) {
+    console.error("ERROR EN /test-sql:", err);
+    res.status(500).send({
+      error: "Fallo la consulta ❌",
+      details: err.message
+    });
+  }
+});
+
 
 // app.get('/item-position', (req, res) => {
 //   if (itemPosition) {
@@ -73,6 +92,16 @@ function safeJsonParse(str) {
 ws.onConnection = (socket, id) => {
     const meta = ws.getClientData(id);           
   if (meta && meta.role === 'player') {
+
+    if (game.players.size >= 4) {
+      socket.send(JSON.stringify({
+          type: 'full_sesion',
+          message: 'El lobby esta completo'
+      }));
+      socket.close(4000, 'Game is full');
+      return;
+  }
+
   // Desconecta otros sockets player del mismo remoteAddress
   ws.getClientsData().forEach(c => {
     if (c.role === 'player' &&
