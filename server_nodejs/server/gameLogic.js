@@ -126,12 +126,13 @@ class GameLogic {
                     }
                     break;
                 case "endGame":
+                    console.log( id + "Ha ganado el juego!");
                     this.conn.broadcast(JSON.stringify({
                         type: "endGame",
                         winner: `${id}`,
                     }));
 
-                    console.log( id + "Ha ganado el juego!");
+                   
                     this.gameStarted = false;
                     this.players.clear();
                     break;
