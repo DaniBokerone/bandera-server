@@ -128,8 +128,8 @@ class GameLogic {
                 case "endGame":
                     console.log( id + "Ha ganado el juego!");
                     this.conn.broadcast(JSON.stringify({
-                        type: "endGame",
-                        winner: `${id}`,
+                        type: "winner",
+                        winner: id,
                     }));
 
                    
