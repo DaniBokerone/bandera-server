@@ -3,6 +3,7 @@ const express = require('express');
 const GameLogic = require('./gameLogic.js');
 const webSockets = require('./utilsWebSockets.js');
 const connectToSQL = require('./navision.js');
+const { syncWithMongoAndSQL } = require('./navision.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
@@ -49,6 +50,19 @@ app.get('/test-sql', async (req, res) => {
     console.error("ERROR EN /test-sql:", err);
     res.status(500).send({
       error: "Fallo la consulta ❌",
+      details: err.message
+    });
+  }
+});
+
+app.get('/update-navision', async (req, res) => {
+  try {
+    const insertados = await syncWithMongoAndSQL();
+    res.send({ message: `Datos sincronizados. Jugadores insertados: ${insertados}` });
+  } catch (err) {
+    console.error("ERROR sincronizando Navision:", err);
+    res.status(500).send({
+      error: "Error al sincronizar con Navision",
       details: err.message
     });
   }
