@@ -25,6 +25,7 @@ const DIRECTIONS = {
 class GameLogic {
 
     constructor() {
+        this.conn = null;
         this.gameStarted = true;
         this.players = new Map();
         // this.loadGameData();
