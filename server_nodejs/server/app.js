@@ -90,7 +90,7 @@ wss.on('connection', (socket, req) => {
 
 gameLoop.run = (fps) => {
   game.updateGame(fps);
-  wss.broadcast({ type: 'update', gameState: game.getGameState() });
+  wss.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
 };
 gameLoop.start();
 
