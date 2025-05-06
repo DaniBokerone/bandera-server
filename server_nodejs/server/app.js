@@ -4,6 +4,7 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const { v4: uuidv4 } = require('uuid');                 
 
 const GameLogic = require('./gameLogic.js');
 const GameLoop = require('./utilsGameLoop.js');
@@ -25,38 +26,62 @@ app.get('/test', (_req, res) => {
 });
 
 const httpServer = http.createServer(app).listen(port, '0.0.0.0', () => {
-  console.log(`HTTP escuchando en http://localhost:${port}`);
+  console.log(`HTTP en http://localhost:${port}`);
 });
 
 
 const wss = new WebSocket.Server({ server: httpServer });
 
+const socketsClients = new Map();   
+
 wss.broadcast = function broadcast(data) {
   const msg = typeof data === 'string' ? data : JSON.stringify(data);
   wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(msg);
-    }
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
   });
 };
 
+game.conn = wss;
 
-game.conn = wss;               
+wss.on('connection', (socket, req) => {
+  const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
+  const role   = params.get('role') || 'spectator';
+  const id     = 'C' + uuidv4().substring(0, 5).toUpperCase();
 
-(async () => {
-  await game.loadGameData();
-  gameLoop.start();
-})();
+  socketsClients.set(socket, { id, role });
+  if (debug) console.log('➕ Conectado', id, '| role:', role);
 
+  socket.send(JSON.stringify({
+    type:    'welcome',
+    id:      id,
+    message: 'Welcome to the server'
+  }));
 
-function safeJsonParse(str) {
-  try {
-    const obj = JSON.parse(str);
-    return obj && typeof obj === 'object' ? obj : null;
-  } catch (_) {
-    return null;
+  wss.broadcast({ type: 'newClient', id });
+
+  if (role === 'player') {
+    game.addClient(id);
+    broadcastPlayerCount();
   }
-}
+
+  socket.on('message', (raw) => {
+    const str = raw.toString();
+    if (debug) console.log(`← [${id}] ${str.slice(0, 40)}...`);
+    game.handleMessage(id, str);
+  });
+
+  socket.on('close', () => {
+    if (debug) console.log('➖ Desconectado', id);
+    socketsClients.delete(socket);
+
+    if (role === 'player') {
+      game.removeClient(id);
+      broadcastPlayerCount();
+    }
+
+    wss.broadcast({ type: 'disconnected', id });
+  });
+});
 
 function broadcastPlayerCount() {
   wss.broadcast({
@@ -65,43 +90,22 @@ function broadcastPlayerCount() {
   });
 }
 
-wss.on('connection', (socket, req) => {
-  const id = `${req.socket.remoteAddress}:${Date.now()}`;
-
-  if (debug) console.log('WS conectado:', id);
-  game.addClient(id);
-
-  socket.send(JSON.stringify({ type: 'playerCount', count: game.players.size }));
-  broadcastPlayerCount();
-
-  socket.on('message', (raw) => {
-    const str = raw.toString();
-    if (debug) console.log(`← [${id}] ${str.substr(0, 40)}...`);
-    game.handleMessage(id, str);
-  });
-
-  socket.on('close', () => {
-    if (debug) console.log('WS desconectado:', id);
-    game.removeClient(id);
-    broadcastPlayerCount();
-  });
-});
-
 
 gameLoop.run = (fps) => {
   game.updateGame(fps);
-  wss.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
+  wss.broadcast({ type: 'update', gameState: game.getGameState() });
 };
-gameLoop.start();
-
+(async () => {
+  await game.loadGameData();
+  gameLoop.start();                     
+})();
 
 process.on('SIGTERM', shutDown);
 process.on('SIGINT',  shutDown);
 
 function shutDown() {
-  console.log('Señal de apagado recibida, cerrando servidor...');
-  httpServer.close();
-  wss.close();
+  console.log('⏹️  Cerrando servidor…');
   gameLoop.stop();
-  process.exit(0);
+  wss.close();
+  httpServer.close(() => process.exit(0));
 }
