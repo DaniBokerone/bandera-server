@@ -133,9 +133,11 @@ class GameLogic {
                         winner: id,
                     }));
 
-                   
-                    this.gameStarted = false;
-                    this.players.clear();
+                    setTimeout(() => {             
+                        this.gameStarted = false;
+                        this.players.clear();
+                      }, 3000);
+                    
                     break;
                 default:
                     break;
