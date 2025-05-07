@@ -1,11 +1,11 @@
 'use strict';
 
+const connectDB = require('./db');
 const path = require('path');
 const fs = require('fs').promises;
 
 const COLORS = ['green', 'blue', 'darkgreen'];
 const SPEED = 0.2;
-const MAX_PLAYERS = 4;
 
 const TILE_SIZE = 16; // Tamaño de cada tile en píxeles
 const WIDTH_IN_TILES = 48; // Ancho del mapa en tiles
@@ -26,14 +26,12 @@ const DIRECTIONS = {
 class GameLogic {
 
     constructor() {
+        this.conn = null;
         this.gameStarted = true;
         this.players = new Map();
-        this.waitingPlayers = new Map();
         // this.loadGameData();
         this.elapsedTime = 0;
         this.map = "Deepwater Ruins";
-        this.usedColors = new Set();
-
     }
 
     async loadGameData() {
@@ -51,7 +49,15 @@ class GameLogic {
         this.flagPos = {
             dx: Math.random(),
             dy: Math.random()
+        },
+        this.buildings = [{
+            dx: 0.2,
+            dy: 0.9
+        }, {
+            dx: 0.9,
+            dy: 0.2
         }
+    ];
     }
 
 
@@ -78,15 +84,8 @@ class GameLogic {
         }
         console.log(pos);
 
-        let color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        while (this.usedColors.has(color)) {
-            color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        }
-        this.usedColors.add(color);
-
-        this.waitingPlayers.set(id, {
+        this.players.set(id, {
             id,
-            ready: false,
             x: pos.x,
             y: pos.y,
             speed: SPEED,
@@ -95,7 +94,6 @@ class GameLogic {
             map: "Main",
             zone: "", // Col·lisió amb objectes o zones
             hasFlag: false,
-            color: color,
         });
 
         return this.waitingPlayers.get(id);
@@ -103,17 +101,7 @@ class GameLogic {
 
     // Es desconnecta un client/jugador
     removeClient(id) {
-        if (this.players.has(id)) {
-            this.usedColors.delete(this.players.get(id).color);
-            this.players.delete(id);
-            
-        }
-        if (this.waitingPlayers.has(id)) {
-            this.usedColors.delete(this.waitingPlayers.get(id).color);
-            this.waitingPlayers.delete(id);
-            
-        }
-        
+        this.players.delete(id);
     }
 
     // Tractar un missatge d'un client/jugador
@@ -135,14 +123,62 @@ class GameLogic {
                         }
                     }
                     break;
-                case "ready":
-                    this.players.set(id, this.waitingPlayers.get(id));
-                    this.waitingPlayers.delete(id);
+                case "flagTouch":
+                    console.log("Flag touch: " + id);
+                    if (this.players.has(id)) {
+                        this.players.get(id).hasFlag = true;
+                    }
+                    break;
+                case "endGame":
+                    console.log( id + "Ha ganado el juego!");
+                    this.conn.broadcast(JSON.stringify({
+                        type: "winner",
+                        winner: id,
+                    }));
+
+                    // setTimeout(() => {             
+                    //     this.gameStarted = false;
+                    //     this.players.clear();
+                    //   }, 3000);
+                    
                     break;
                 default:
                     break;
             }
         } catch (error) { }
+    }
+
+    async saveGameSummary(players, winnerId, durationMinutes) {
+        const playersData = Array.from(players.values()).map(client => ({
+            id: client.id,
+            attacks_made: 0,
+            attacks_received: 0,
+            score: Math.floor(Math.random() * 200),
+            is_new_high_score: false,
+            player_rank: ['Iron', 'Bronze', 'Silver', 'Gold'][Math.floor(Math.random() * 4)]
+        }));
+    
+        const gameDoc = {
+            id: Math.floor(Math.random() * 100000),
+            game_date: new Date().toISOString(),
+            player_size: players.size,
+            game_views: Math.floor(Math.random() * 5000),
+            match_type: "ranked",
+            players: playersData,
+            player_winner_id: winnerId,
+            duration_minutes: durationMinutes,
+            region: "Europe"
+        };
+    
+        try {
+            const { gamesCollection } = await connectDB();
+    
+            await gamesCollection.insertOne(gameDoc);
+            console.log("Partida guardada correctamente en MongoDB.");
+
+        } catch (err) {
+            console.error("Error al guardar la partida:", err);
+        }
     }
 
     // Carregar dades estàtiques del joc
@@ -158,17 +194,19 @@ class GameLogic {
       }
 
       updateGame(fps) {
-        // ******
-        if(this.gameStarted) {
-            if(this.players.size <= 0) {
-                this.gameStarted = false;
-            }
-       
+        if (!this.gameStarted) {
+          if (this.players.size >= 4) {
+            setTimeout(() => this.gameStarted = true, 5000);
+          }
+          return;
+        }
         
         // radio del sprite expresado en porcentaje (una sola vez mejor en constructor)
         const RADIUS_X = 250 / 2 / 4000; // 0.03125
         const RADIUS_Y = 250 / 2 / 3000; // ~0.04167
         const deltaTime = 1 / fps;
+
+        const FLAG_RADIUS = 0.02; // Ajustar a la bandera
       
         this.players.forEach(client => {
           if (!client.moving) return;
@@ -188,24 +226,31 @@ class GameLogic {
           // 3) Asigna la posición con toda la precisión
           client.x = newX;
           client.y = newY;
-      
-    
-        });
-        } else {
-            if(this.players.size >= 1 && !this.waitingToStart) {
-                console.log("Starting game...");
-                this.waitingToStart = true;
-                setTimeout(() => {
-                    if(this.players.size >= 1) {
-                        this.gameStarted = true;
-                        this.waitingToStart = false;
-                        console.log("Game started!");
-                    }else {
-                        this.waitingToStart = false;
-                    }
-                }, 5000);
+
+            const dx = newX - this.flagPos.dx;
+            const dy = newY - this.flagPos.dy;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < FLAG_RADIUS) {
+                console.log(`¡Jugador ${client.id} ha ganado la partida!`);
+                this.gameStarted = false;
+
+                const duration = Math.floor(this.elapsedTime / 60);
+                this.saveGameSummary(this.players, client.id, duration);
+
             }
-        }
+      
+        //   // 4) Envía la posición **redondeada** sólo para el servidor o la UI
+        //   const sendX = Math.round(newX * 10) / 10;
+        //   const sendY = Math.round(newY * 10) / 10;
+        //   if (sendX !== this.lastSentX || sendY !== this.lastSentY) {
+        //     this.conn.sendData(
+        //       JSON.stringify({ type: "position", x: sendX, y: sendY })
+        //     );
+        //     this.lastSentX = sendX;
+        //     this.lastSentY = sendY;
+        //   }
+        });
       }
       
       
@@ -237,10 +282,13 @@ class GameLogic {
             time: Math.trunc(this.elapsedTime),
             players: Array.from(this.players.values()),
             flagPos: this.flagPos,
+            buildings: this.buildings,
         }
        // console.log(`GameState: ${JSON.stringify(gameState)}`);
         return gameState;
     }
+
+    
 }
 
 module.exports = GameLogic;

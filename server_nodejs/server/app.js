@@ -1,40 +1,67 @@
+// app.js
+'use strict';
 
 const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const { v4: uuidv4 } = require('uuid');                 
+
 const GameLogic = require('./gameLogic.js');
 const webSockets = require('./utilsWebSockets.js');
+const connectToSQL = require('./navision.js');
+const { syncWithMongoAndSQL } = require('./navision.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
 const port = process.env.PORT || 3000;
 
-// Inicialitzar WebSockets i la lògica del joc
-const ws = new webSockets();
+
 const game = new GameLogic();
-let gameLoop = new GameLoop();
+const gameLoop = new GameLoop();
 
-// //GESTION LLAVE 
-// let itemPosition = null;
 
-// function generateRandomItemPosition() {
-//   const x = Math.floor(Math.random() * 800);
-//   const y = Math.floor(Math.random() * 600);
-//   return { x, y };
-// }
-
-// Inicialitzar servidor Express
 const app = express();
 app.use(express.static('public'));
 app.use(express.json());
 
-(async () => {
-    await game.loadGameData();
-    gameLoop.start();
-})();
-
-// Ruta GET para testear la conexión desde un dispositivo externo
-app.get('/test', (req, res) => {
-    res.send('Servidor funcionando correctamente!');
+app.get('/test', (_req, res) => {
+  res.send('Servidor funcionando correctamente!');
 });
+
+const httpServer = http.createServer(app).listen(port, '0.0.0.0', () => {
+  console.log(`HTTP en http://localhost:${port}`);
+});
+
+app.get('/test-sql', async (req, res) => {
+  try {
+    const pool = await connectToSQL();
+    const result = await pool.request().query("SELECT TOP 1 * FROM [Demo Database NAV 2016 (AMS2-24)].[dbo].[CRONUS España S_A_$bandera_tournaments]");
+    res.send({
+      message: "Consulta exitosa 🎉",
+      data: result.recordset[0]
+    });
+  } catch (err) {
+    console.error("ERROR EN /test-sql:", err);
+    res.status(500).send({
+      error: "Fallo la consulta ❌",
+      details: err.message
+    });
+  }
+});
+
+app.get('/update-navision', async (req, res) => {
+  try {
+    const insertados = await syncWithMongoAndSQL();
+    res.send({ message: `Datos sincronizados. Jugadores insertados: ${insertados}` });
+  } catch (err) {
+    console.error("ERROR sincronizando Navision:", err);
+    res.status(500).send({
+      error: "Error al sincronizar con Navision",
+      details: err.message
+    });
+  }
+});
+
 
 // app.get('/item-position', (req, res) => {
 //   if (itemPosition) {
@@ -44,102 +71,95 @@ app.get('/test', (req, res) => {
 //   }
 // });
 
-// Inicialitzar servidor HTTP
-const httpServer = app.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
-});
+// // Inicialitzar servidor HTTP
+// const httpServer = app.listen(port, '0.0.0.0', () => {
+//     console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
+// });
 
-// Gestionar WebSockets
-ws.init(httpServer, port);
 
-function safeJsonParse(str) {
-    try {
-      const obj = JSON.parse(str);
-      // Opcional: comprueba que sea realmente un objeto / array
-      return obj !== null && typeof obj === 'object' ? obj : null;
-    } catch (_) {
-      return null;
-    }
+const wss = new WebSocket.Server({ server: httpServer });
+
+const socketsClients = new Map();   
+
+wss.broadcast = function broadcast(data) {
+  const msg = typeof data === 'string' ? data : JSON.stringify(data);
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
+  });
+};
+
+game.conn = wss;
+
+wss.on('connection', (socket, req) => {
+  const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
+  const role   = params.get('role') || 'spectator';
+  const id     = 'C' + uuidv4().substring(0, 5).toUpperCase();
+
+  if (role === 'player' && game.players.size >= 4) {         
+    console.log('Conexión rechazada: máximo de 4 jugadores alcanzado');
+    socket.close(4001, 'Game full');                          
+    return;                                                   
   }
 
-  function broadcastPlayerCount() {
-    ws.broadcast(JSON.stringify({
-      type: 'playerCount',
-      count: game.players.size          
-    }));
-  }
+  socketsClients.set(socket, { id, role });
+  if (debug) console.log('➕ Conectado', id, '| role:', role);
+
+  socket.send(JSON.stringify({
+    type:    'welcome',
+    id:      id,
+    message: 'Welcome to the server'
+  }));
+
+  wss.broadcast({ type: 'newClient', id });
+
   
-// app.js
-ws.onConnection = (socket, id) => {
-    const meta = ws.getClientData(id);           
-  if (meta && meta.role === 'player') {
-  // Desconecta otros sockets player del mismo remoteAddress
-  ws.getClientsData().forEach(c => {
-    if (c.role === 'player' &&
-        c.id !== id &&
-        c.socket && c.socket._socket.remoteAddress === socket._socket.remoteAddress) {
-      c.socket.close(4000, 'Duplicate connection');
-    }
+  if (role === 'player') {
+    game.addClient(id);
+    broadcastPlayerCount();
+  }
+
+  socket.on('message', (raw) => {
+    const str = raw.toString();
+    if (debug) console.log(`← [${id}] ${str.slice(0, 40)}...`);
+    game.handleMessage(id, str);
   });
 
-  game.addClient(id);
-    game.addClient(id);                       
-    socket.send(JSON.stringify({type:'playerCount',
-                                count: game.players.size}));
-   broadcastPlayerCount();
-  }
-};
+  socket.on('close', () => {
+    if (debug) console.log('➖ Desconectado', id);
+    socketsClients.delete(socket);
 
-ws.onMessage = (socket, id, raw) => {
-   
-    
-    game.handleMessage(id, raw);   // resto del flujo
-};
+    if (role === 'player') {
+      game.removeClient(id);
+      broadcastPlayerCount();
+    }
+
+    wss.broadcast({ type: 'disconnected', id });
+  });
+});
+
+function broadcastPlayerCount() {
+  wss.broadcast({
+    type:  'playerCount',
+    count: game.players.size
+  });
+}
 
 
-// // Què fa el servidor quan un client es connecta
-// ws.onConnection = (socket, id) => {
-//   if (debug) console.log("WebSocket client connected: " + id);
-//   game.addClient(id);
-
-
-
-//     //Cuando entra jugador - Numero de players conectados
-//     socket.send(JSON.stringify({ type: "playerCount", count: game.players.size }));
-
-//     //Cuando entra jugador - Actualiza total de players conectados
-//     ws.broadcast(JSON.stringify({ type: "playerCount", count: game.players.size }));
-// };
-
-// // Gestionar missatges rebuts dels clients
-// ws.onMessage = (socket, id, msg) => {
-//     //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
-//     game.handleMessage(id, msg);
-// };
-
-// Què fa el servidor quan un client es desconnecta
-ws.onClose = (socket, id) => {
-    if (debug) console.log("WebSocket client disconnected: " + id);
-    game.removeClient(id);
-    ws.broadcast(JSON.stringify({ type: "disconnected", from: "server" }));
-};
-
-// **Game Loop**
 gameLoop.run = (fps) => {
-    game.updateGame(fps);
-    ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
-    broadcastPlayerCount(); 
+  game.updateGame(fps);
+  wss.broadcast({ type: 'update', gameState: game.getGameState() });
 };
-gameLoop.start();
+(async () => {
+  await game.loadGameData();
+  gameLoop.start();                     
+})();
 
-// Gestionar el tancament del servidor
 process.on('SIGTERM', shutDown);
-process.on('SIGINT', shutDown);
+process.on('SIGINT',  shutDown);
 
 function shutDown() {
-    console.log('Rebuda senyal de tancament, aturant el servidor...');
-    httpServer.close();
-    ws.end();
-    gameLoop.stop();
-    process.exit(0);
+  console.log('⏹️  Cerrando servidor…');
+  gameLoop.stop();
+  wss.close();
+  httpServer.close(() => process.exit(0));
 }
