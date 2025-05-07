@@ -28,6 +28,10 @@ app.get('/test', (_req, res) => {
   res.send('Servidor funcionando correctamente!');
 });
 
+const httpServer = http.createServer(app).listen(port, '0.0.0.0', () => {
+  console.log(`HTTP en http://localhost:${port}`);
+});
+
 app.get('/test-sql', async (req, res) => {
   try {
     const pool = await connectToSQL();
@@ -67,10 +71,10 @@ app.get('/update-navision', async (req, res) => {
 //   }
 // });
 
-// Inicialitzar servidor HTTP
-const httpServer = app.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
-});
+// // Inicialitzar servidor HTTP
+// const httpServer = app.listen(port, '0.0.0.0', () => {
+//     console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
+// });
 
 
 const wss = new WebSocket.Server({ server: httpServer });
