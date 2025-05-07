@@ -91,7 +91,11 @@ wss.on('connection', (socket, req) => {
   const role   = params.get('role') || 'spectator';
   const id     = 'C' + uuidv4().substring(0, 5).toUpperCase();
 
-  
+  if (role === 'player' && game.players.size >= 4) {         
+    console.log('Conexión rechazada: máximo de 4 jugadores alcanzado');
+    socket.close(4001, 'Game full');                          
+    return;                                                   
+  }
 
   socketsClients.set(socket, { id, role });
   if (debug) console.log('➕ Conectado', id, '| role:', role);
@@ -104,6 +108,7 @@ wss.on('connection', (socket, req) => {
 
   wss.broadcast({ type: 'newClient', id });
 
+  
   if (role === 'player') {
     game.addClient(id);
     broadcastPlayerCount();
