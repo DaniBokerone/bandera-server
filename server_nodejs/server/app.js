@@ -7,6 +7,9 @@ const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');                 
 
 const GameLogic = require('./gameLogic.js');
+const webSockets = require('./utilsWebSockets.js');
+const connectToSQL = require('./navision.js');
+const { syncWithMongoAndSQL } = require('./navision.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
@@ -25,8 +28,48 @@ app.get('/test', (_req, res) => {
   res.send('Servidor funcionando correctamente!');
 });
 
-const httpServer = http.createServer(app).listen(port, '0.0.0.0', () => {
-  console.log(`HTTP en http://localhost:${port}`);
+app.get('/test-sql', async (req, res) => {
+  try {
+    const pool = await connectToSQL();
+    const result = await pool.request().query("SELECT TOP 1 * FROM [Demo Database NAV 2016 (AMS2-24)].[dbo].[CRONUS España S_A_$bandera_tournaments]");
+    res.send({
+      message: "Consulta exitosa 🎉",
+      data: result.recordset[0]
+    });
+  } catch (err) {
+    console.error("ERROR EN /test-sql:", err);
+    res.status(500).send({
+      error: "Fallo la consulta ❌",
+      details: err.message
+    });
+  }
+});
+
+app.get('/update-navision', async (req, res) => {
+  try {
+    const insertados = await syncWithMongoAndSQL();
+    res.send({ message: `Datos sincronizados. Jugadores insertados: ${insertados}` });
+  } catch (err) {
+    console.error("ERROR sincronizando Navision:", err);
+    res.status(500).send({
+      error: "Error al sincronizar con Navision",
+      details: err.message
+    });
+  }
+});
+
+
+// app.get('/item-position', (req, res) => {
+//   if (itemPosition) {
+//     res.json({ x: itemPosition.x, y: itemPosition.y });
+//   } else {
+//     res.status(404).json({ error: "La llave no está disponible." });
+//   }
+// });
+
+// Inicialitzar servidor HTTP
+const httpServer = app.listen(port, '0.0.0.0', () => {
+    console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
 });
 
 
@@ -47,6 +90,8 @@ wss.on('connection', (socket, req) => {
   const params = new URL(req.url, `http://${req.headers.host}`).searchParams;
   const role   = params.get('role') || 'spectator';
   const id     = 'C' + uuidv4().substring(0, 5).toUpperCase();
+
+  
 
   socketsClients.set(socket, { id, role });
   if (debug) console.log('➕ Conectado', id, '| role:', role);

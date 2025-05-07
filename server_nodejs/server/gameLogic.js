@@ -1,5 +1,6 @@
 'use strict';
 
+const connectDB = require('./db');
 const path = require('path');
 const fs = require('fs').promises;
 
@@ -145,6 +146,39 @@ class GameLogic {
         } catch (error) { }
     }
 
+    async saveGameSummary(players, winnerId, durationMinutes) {
+        const playersData = Array.from(players.values()).map(client => ({
+            id: client.id,
+            attacks_made: 0,
+            attacks_received: 0,
+            score: Math.floor(Math.random() * 200),
+            is_new_high_score: false,
+            player_rank: ['Iron', 'Bronze', 'Silver', 'Gold'][Math.floor(Math.random() * 4)]
+        }));
+    
+        const gameDoc = {
+            id: Math.floor(Math.random() * 100000),
+            game_date: new Date().toISOString(),
+            player_size: players.size,
+            game_views: Math.floor(Math.random() * 5000),
+            match_type: "ranked",
+            players: playersData,
+            player_winner_id: winnerId,
+            duration_minutes: durationMinutes,
+            region: "Europe"
+        };
+    
+        try {
+            const { gamesCollection } = await connectDB();
+    
+            await gamesCollection.insertOne(gameDoc);
+            console.log("Partida guardada correctamente en MongoDB.");
+
+        } catch (err) {
+            console.error("Error al guardar la partida:", err);
+        }
+    }
+
     // Carregar dades estàtiques del joc
     fetchGameData() {
         const filePath = path.join(__dirname, '../public', 'game_data.json');
@@ -169,6 +203,8 @@ class GameLogic {
         const RADIUS_X = 250 / 2 / 4000; // 0.03125
         const RADIUS_Y = 250 / 2 / 3000; // ~0.04167
         const deltaTime = 1 / fps;
+
+        const FLAG_RADIUS = 0.02; // Ajustar a la bandera
       
         this.players.forEach(client => {
           if (!client.moving) return;
@@ -188,6 +224,19 @@ class GameLogic {
           // 3) Asigna la posición con toda la precisión
           client.x = newX;
           client.y = newY;
+
+            const dx = newX - this.flagPos.dx;
+            const dy = newY - this.flagPos.dy;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < FLAG_RADIUS) {
+                console.log(`¡Jugador ${client.id} ha ganado la partida!`);
+                this.gameStarted = false;
+
+                const duration = Math.floor(this.elapsedTime / 60);
+                this.saveGameSummary(this.players, client.id, duration);
+
+            }
       
         //   // 4) Envía la posición **redondeada** sólo para el servidor o la UI
         //   const sendX = Math.round(newX * 10) / 10;
@@ -236,6 +285,8 @@ class GameLogic {
        // console.log(`GameState: ${JSON.stringify(gameState)}`);
         return gameState;
     }
+
+    
 }
 
 module.exports = GameLogic;
